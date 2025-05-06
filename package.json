@@ -1,0 +1,25 @@
+{
+  "name": "online_coup",
+  "version": "1.0.0",
+  "description": "5 personagens padrões:\r   Banqueiro;\r   Ladrão;\r   Médico;\r   Assassino;\r   Diplomata;\r Gerar duas cartas aleatórias para cada jogador no início da partida;\r Exibir uma lista com as ações que o jogador pode fazer no turno dele;\r Quando escolhe uma ação, aparece uma tela resumindo a ação:\r Pra quem fez a ação aparece só o que ele escolheu;\r Pra todos os outros aparece a ação e um botão “Questionar”\r OBS. para ações mais especificas como assassinato precisa planejar melhor como vai funcionar, pois há a contra-ação do médico por exemplo",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RicardoHSimoni/Online_Coup.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RicardoHSimoni/Online_Coup/issues"
+  },
+  "homepage": "https://github.com/RicardoHSimoni/Online_Coup#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
+}

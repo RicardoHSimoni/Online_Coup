@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Jogo de Cartas</title>
+</head>
+<body>
+  <h1>Sala de Espera...</h1>
+  <ul id="cartas"></ul>
+
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+
+    socket.on("iniciar-partida", (dados) => {
+      document.querySelector("h1").textContent = "Suas cartas:";
+      const ul = document.getElementById("cartas");
+      dados.suasCartas.forEach(carta => {
+        const li = document.createElement("li");
+        li.textContent = carta;
+        ul.appendChild(li);
+      });
+    });
+  </script>
+</body>
+</html>
