@@ -7,13 +7,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const Baralho = require('./baralho.js'); // Importa a classe Baralho
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-const baralhoOriginal = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+var baralho = new Baralho(6);
+console.log(baralho.cartas); // Exibe as cartas do baralho no console
 
-function embaralhar(array) {
-  return array.sort(() => Math.random() - 0.5);
-}
+app.get('/iniciar-partida', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'iniciar-partida.html'));
+});
+
+
 
 let sala = []; // guarda os sockets dos jogadores
 
@@ -21,15 +26,13 @@ io.on('connection', (socket) => {
   console.log('Um jogador conectou:', socket.id);
   sala.push(socket);
 
-  if (sala.length === 2) {
-    const baralho = embaralhar([...baralhoOriginal]);
-    const jogador1Cartas = baralho.splice(0, 5);
-    const jogador2Cartas = baralho.splice(0, 5);
+
+  if ( sala.length === 2) {
 
     sala[0].emit('iniciar-partida', { suasCartas: jogador1Cartas });
     sala[1].emit('iniciar-partida', { suasCartas: jogador2Cartas });
-
-    sala = []; // limpa a sala para próxima partida
+    const jogador1Cartas = baralho.cartas.splice(0, 5);
+    const jogador2Cartas = baralho.cartas.splice(0, 5);
   }
 
   socket.on('disconnect', () => {
@@ -55,7 +58,7 @@ let baralho;
 if (numeroJogadores < 6) {
     baralho = {
         banqueiro: 3,
-        ladrao: 3,
+// Removido código duplicado de definição de baralho, pois já existe uma instância de Baralho
         medico: 3,
         assassino: 3,
         diplomata: 3,
