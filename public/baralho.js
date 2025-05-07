@@ -1,15 +1,16 @@
-class Baralho {
+export default class Baralho {
     constructor(numeroJogadores) {
-        if (numeroJogadores < 6) {
+        if (numeroJogadores <= 6) {
             this.copias = 3;
         }
-        else if (numeroJogadores < 8) {
+        else if (numeroJogadores <= 8) {
             this.copias = 4;
         }
-        else if (numeroJogadores < 10) {
+        else {
             this.copias = 5;
         }
         this.valores = ['assassino', 'diplomata', 'ladrao', 'medico', 'banqueiro'];
+        this.cartas = [];
         this.iniciarBaralho();
     }
 
@@ -28,3 +29,4 @@ class Baralho {
         }
     }
 }
+
