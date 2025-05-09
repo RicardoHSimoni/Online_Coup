@@ -20,15 +20,19 @@ io.on('connection', (socket) => {
    
 
     socket.on('novo-jogador', (data) => {
-    const jogador = data
-    console.log('Novo jogador:', jogador.nome);
-      sala.push(jogador); // Adiciona o jogador à sala
-      socket.emit('jogador-adicionado', { jogador }); // Envia o ID e nome do jogador de volta para o cliente
+      if (data && data.nome) {
+        sala.push(data); // Adiciona o jogador à sala
+        console.log('Sala atual:', sala); // Exibe a sala no console
+        io.emit('jogador-adicionado', sala); // Envia o ID e nome do jogador de volta para o cliente
+      } else {
+        console.error('Erro: Dados do jogador inválidos recebidos:', data);
+      }
     });
   
     socket.on('disconnect', () => {
       console.log('Jogador saiu:', socket.id);
       sala = sala.filter(s => s.id !== socket.id);
+      io.emit('jogador-removido', sala); // Atualiza a lista de jogadores para todos os clientes
     });
 });
   

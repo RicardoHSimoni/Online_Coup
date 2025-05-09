@@ -1,6 +1,8 @@
 import Jogador from './jogador.js';
 import Baralho from './baralho.js';
 
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io(); // Conecta ao servidor Socket.IO
     const nomeInput = document.getElementById('apelido');
@@ -9,14 +11,56 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') {
         const nome = nomeInput.value; // Obtém o nome do jogador
         const jogador = new Jogador(socket.id, nome); // Cria uma nova instância de Jogador
-        console.log('Jogador criado:', jogador); // Exibe o jogador no console
-        socket.emit('novo-jogador', { jogador }); // Envia o jogador para o servidor
+        socket.emit('novo-jogador', jogador); // Envia o jogador para o servidor
       }
     });
 
     socket.on('jogador-adicionado', (data) => {
-      console.log('Jogador adicionado:', data.jogador.nome); // Exibe o jogador adicionado no console
+      const jogadoresList = document.getElementById('jogadores-list');
+    
+      if (!Array.isArray(data)) {
+        console.error('Dados recebidos não são uma lista de jogadores:', data);
+        return;
+      }
+    
+      // Criar um Set com os nomes recebidos
+      const novosJogadores = new Set(data.map(j => j.nome));
+    
+      // Criar um Set com os nomes já presentes na lista
+      const itensAtuais = jogadoresList.querySelectorAll('li');
+      const jogadoresAtuais = new Set();
+      itensAtuais.forEach(item => jogadoresAtuais.add(item.textContent));
+    
+      // Remover jogadores que não estão mais na nova lista
+      itensAtuais.forEach(item => {
+        if (!novosJogadores.has(item.textContent)) {
+          jogadoresList.removeChild(item);
+        }
+      });
+    
+      // Adicionar jogadores novos
+      novosJogadores.forEach(nome => {
+        if (!jogadoresAtuais.has(nome)) {
+          const li = document.createElement('li');
+          li.textContent = nome;
+          jogadoresList.appendChild(li);
+        }
+      });
     });
 
+    socket.on('jogador-removido', (data) => {
+      const jogadoresList = document.getElementById('jogadores-list');
+      const itensAtuais = jogadoresList.querySelectorAll('li');
+    
+      // Criar um Set com os nomes recebidos
+      const jogadoresRemovidos = new Set(data.map(j => j.nome));
+    
+      // Remover jogadores que não estão mais na nova lista
+      itensAtuais.forEach(item => {
+        if (jogadoresRemovidos.has(item.textContent)) {
+          jogadoresList.removeChild(item);
+        }
+      });
+    });
 
 })
