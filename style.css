@@ -10,6 +10,13 @@ h1 {
     color: #333;
 }
 
+button:disabled {
+  background-color: #ccc;     /* cinza claro */
+  color: #666;                /* cinza escuro no texto */
+  cursor: not-allowed;        /* ícone de bloqueado */
+  opacity: 0.7;               /* aparência "apagada" */
+}
+
 button {
     background-color: #007BFF;
     color: white;

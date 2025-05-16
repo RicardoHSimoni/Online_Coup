@@ -1,22 +1,25 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/iniciar-partida', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'iniciar-partida.html'));
+const io = new Server(server, {
+    cors: {
+        origin: '*', // ou "http://127.0.0.1:5500"
+    }
 });
 
-let sala = []; // guarda os sockets dos jogadores
+let salasAtivas = []; // guarda as salas ativas
 
 io.on('connection', (socket) => {
     console.log('Um jogador conectou:', socket.id);
+
+    socket.on('criar-sala', (sala) => {
+        salasAtivas.push(sala); // Adiciona a nova sala à lista de salas ativas
+        console.log('Sala criada:', sala);
+        socket.emit('sala-criada', sala); // Envia a sala criada para o lobby
+    })
    
 
     socket.on('novo-jogador', (data) => {

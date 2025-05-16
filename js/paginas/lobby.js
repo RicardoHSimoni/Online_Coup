@@ -1,7 +1,4 @@
-import Jogador from './jogador.js';
-import Baralho from './baralho.js';
-
-
+import Jogador from '../classes/jogador.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io(); // Conecta ao servidor Socket.IO
@@ -14,6 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.emit('novo-jogador', jogador); // Envia o jogador para o servidor
       }
     });
+
+    socket.on('sala-criada', (sala) => {
+      console.log('Sala criada(no lobby):', sala);
+    });
+
 
     socket.on('jogador-adicionado', (data) => {
       const jogadoresList = document.getElementById('jogadores-list');
