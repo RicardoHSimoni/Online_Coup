@@ -25,9 +25,28 @@ io.on('connection', (socket) => {
 
     console.log('Novo cliente conectado:', socket.id);
 
-    socket.on('criar-sala', (nomeJogador) => {
-       console.log('Jogador recebido no servidor:', nomeJogador);
-       socket.emit('sala-criada', nomeJogador); // Envia o nome do jogador de volta para o cliente
+    socket.on('criar-sala', (sala) => {
+       //console.log('sala recebida no servidor:', sala);
+       salasAtivas.push(sala); // Adiciona a sala à lista de salas ativas
+       socket.emit('sala-criada', sala); // Envia a sala criada de volta para o cliente
+    })
+
+    socket.on('entrar-sala', (data) => {
+      const { id, jogador } = data; // Desestrutura os dados recebidos
+
+      const sala = salasAtivas.find(sala => sala.id === id); // Busca a sala pelo ID
+      if (!sala) {
+        console.log('Sala com id não encontrada.');
+      }
+
+      if (sala) {
+        sala.jogadores.push(jogador); // Adiciona o jogador à sala
+        console.log('Sala atual:', sala); // Exibe a sala no console
+        socket.emit('sala-criada', sala); // Envia a sala criada de volta para o cliente
+        io.emit('atualizarListaJogadores', sala.jogadores.map(jogador => jogador.nome)); // Atualiza a lista de jogadores para todos os clientes
+      } else {
+        console.error('Sala não encontrada:', id);
+      }
     })
    
 

@@ -18,10 +18,17 @@
 
   <div id="lobbyPage" class="tela" style="display: none;">
     <h2 id="tituloSala"></h2>
-    <div id="mensagens"></div>
-    <input id="msg" placeholder="Digite sua mensagem" />
-    <button id="enviar">Enviar</button>
+    <div class="container-jogadores" id="containerJogadores">
+   
+    </div>
+    <textarea id="codigoSala"></textarea>
+    <button id="iniciarPartida">Iniciar partida</button>
   </div>
+
+  <div id="partidaPage" class="tela" style="display: none;">
+    <h2 id="Coup"></h2>
+    
+    
 
   <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
   <script type="module" src="app.js"></script>

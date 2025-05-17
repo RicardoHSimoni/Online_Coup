@@ -30,3 +30,19 @@ button {
 button:hover {
     background-color: #0056b3;
 }
+
+.jogadores-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.jogador {
+    padding: 15px 20px;
+    border: 2px solid #333;
+    border-radius: 10px;
+    background-color: #f0f0f0;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+    min-width: 100px;
+    text-align: center;
+}

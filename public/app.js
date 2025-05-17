@@ -1,3 +1,4 @@
+import { inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
 
 const socket = io(); // Conexão global única
@@ -12,24 +13,20 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarMainPage(socket); // Inicializa a tela principal
 });
 
-socket.on('sala-criada', (nomeJogador) => {
+socket.on('sala-criada', (sala) => {
     mostrar('lobbyPage'); // Muda para a tela de lobby
-    console.log('jogador que chegou no lobby', nomeJogador);
+    inicializarLobbyPage(socket, sala); // Inicializa a tela de lobby
+    //console.log('sala no lobby', sala);
 });
-   
 
-// Enviar mensagem
-document.getElementById('enviar').onclick = () => {
-  const msg = document.getElementById('msg').value;
-  if (msg.trim()) {
-    socket.emit('mensagem', msg);
-    document.getElementById('msg').value = '';
-  }
-};
-
-// Receber mensagens
-socket.on('mensagem', (texto) => {
-  const div = document.createElement('div');
-  div.textContent = texto;
-  document.getElementById('mensagens').appendChild(div);
+socket.on('atualizarListaJogadores', (lista) => {
+  const container = document.getElementById('containerJogadores');
+  container.innerHTML = ''; // Limpa a lista atual
+  lista.forEach(nome => {
+    const div = document.createElement('div');
+    div.classList.add('jogador');
+    div.textContent = nome;
+    container.appendChild(div);
+  });
 });
+     
