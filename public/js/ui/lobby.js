@@ -1,20 +1,32 @@
 import Jogador from '../classes/jogador.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = io(); // Conecta ao servidor Socket.IO
     const nomeInput = document.getElementById('apelido');
-
+    
     nomeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const nome = nomeInput.value; // Obtém o nome do jogador
-        const jogador = new Jogador(socket.id, nome); // Cria uma nova instância de Jogador
+        const jogador = new Jogador(socket.id); // Cria uma nova instância de Jogador
+        jogador.nome = nome; // Define o nome do jogador
         socket.emit('novo-jogador', jogador); // Envia o jogador para o servidor
       }
     });
 
-    socket.on('sala-criada', (sala) => {
-      console.log('Sala criada(no lobby):', sala);
-    });
+    console.log('Instância do socket no lobby:', window.socket);
+
+    if (window.socket) {
+        window.socket.on('sala-criada', (sala) => {
+            if (sala === undefined || sala === null) {
+                console.error('Erro: parâmetro "sala" não recebido corretamente:', sala);
+            } else {
+                console.log('Sala criada(no lobby):', sala);
+                // Atualize a interface do lobby aqui
+            }
+        });
+        // Outros listeners do lobby
+    } else {
+        console.error('Erro: Instância do socket não encontrada no lobby.');
+    }
 
 
     socket.on('jogador-adicionado', (data) => {

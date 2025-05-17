@@ -1,24 +1,33 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: '*', // ou "http://127.0.0.1:5500"
-    }
+const io = new Server(server);
+
+// Servir o arquivo mainPage.html na pasta public
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Servir arquivos estáticos da pasta 'public' (incluindo socket.io.js)
+app.use(express.static(path.join(__dirname, 'public')));
 
 let salasAtivas = []; // guarda as salas ativas
 
 io.on('connection', (socket) => {
-    console.log('Um jogador conectou:', socket.id);
 
-    socket.on('criar-sala', (sala) => {
-        salasAtivas.push(sala); // Adiciona a nova sala à lista de salas ativas
-        console.log('Sala criada:', sala);
-        socket.emit('sala-criada', sala); // Envia a sala criada para o lobby
+    console.log('Novo cliente conectado:', socket.id);
+
+    socket.on('criar-sala', (nomeJogador) => {
+       console.log('Jogador recebido no servidor:', nomeJogador);
+       socket.emit('sala-criada', nomeJogador); // Envia o nome do jogador de volta para o cliente
     })
    
 
@@ -32,11 +41,6 @@ io.on('connection', (socket) => {
       }
     });
   
-    socket.on('disconnect', () => {
-      console.log('Jogador saiu:', socket.id);
-      sala = sala.filter(s => s.id !== socket.id);
-      io.emit('jogador-removido', sala); // Atualiza a lista de jogadores para todos os clientes
-    });
 });
   
   server.listen(3000, () => {

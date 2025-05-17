@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jogo SPA</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="mainPage" class="tela">
+    <h1>Entrar em uma sala</h1>
+    <input id="nomeJogadorEntrar" placeholder="Seu nome" />
+    <input id="salaId" placeholder="Código da sala" />
+    <button id="entrarSala" disabled>Entrar</button>
+    <h2>Criar uma sala</h2>
+    <input id="nomeJogadorCriar" placeholder="Seu nome" />
+    <button id="criarSala" disabled>Criar Sala</button>
+  </div>
+
+  <div id="lobbyPage" class="tela" style="display: none;">
+    <h2 id="tituloSala"></h2>
+    <div id="mensagens"></div>
+    <input id="msg" placeholder="Digite sua mensagem" />
+    <button id="enviar">Enviar</button>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
