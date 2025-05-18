@@ -27,7 +27,7 @@ export function inicializarMainPage(socket) {
 
     // Entrada na sala
     document.getElementById('entrarSala').onclick = () => {
-        const jogador = new Jogador();
+        const jogador = new Jogador(socket.id); // Cria um novo jogador com o ID do socket
         jogador.nome = nomeInputEntrar.value; // Define o nome do jogador
         
         socket.emit('entrar-sala', {
@@ -39,7 +39,7 @@ export function inicializarMainPage(socket) {
 
     // Criação de sala
     document.getElementById('criarSala').onclick = () => {
-        const jogador = new Jogador();
+        const jogador = new Jogador(socket.id); // Cria um novo jogador com o ID do socket
         jogador.nome = nomeInputCriar.value; // Define o nome do jogador
         const sala = new Sala();
         sala.jogadores.push(jogador); // Adiciona o jogador à sala

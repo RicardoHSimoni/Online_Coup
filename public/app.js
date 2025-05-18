@@ -2,6 +2,7 @@ import { inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
 import { inicializarPartidaPage } from "./js/ui/partida.js";
 
+
 const socket = io(); // Conexão global única
 
 // Controle de telas SPA
@@ -30,6 +31,7 @@ socket.on('atualizarListaJogadores', (lista) => {
     container.appendChild(div);
   });
 });
+
 
 socket.on('iniciarPartida', (sala) => {
   mostrar('partidaPage'); // Muda para a tela de partida

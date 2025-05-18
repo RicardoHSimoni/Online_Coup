@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { configurarPartida } from "./public/js/game/mecanicaJogo.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,8 +60,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('configurarPartida', (sala) => {
-      console.log('Iniciando partida para a sala:', sala);
-      io.emit('iniciarPartida', sala); // Envia o evento de iniciar partida para todos os clientes
+      console.log('Configurando partida para a sala:', sala);
+      configurarPartida(sala); // Chama a função para configurar a partida
+      io.emit('iniciarPartida', sala); 
     });
   
 });
