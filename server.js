@@ -20,6 +20,7 @@ app.get('/', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 let salasAtivas = []; // guarda as salas ativas
+let socketsAtivosSala = []; // guarda os sockets ativos
 
 io.on('connection', (socket) => {
 
@@ -35,13 +36,10 @@ io.on('connection', (socket) => {
       const { id, jogador } = data; // Desestrutura os dados recebidos
 
       const sala = salasAtivas.find(sala => sala.id === id); // Busca a sala pelo ID
-      if (!sala) {
-        console.log('Sala com id não encontrada.');
-      }
 
       if (sala) {
         sala.jogadores.push(jogador); // Adiciona o jogador à sala
-        console.log('Sala atual:', sala); // Exibe a sala no console
+        sala.numeroJogadores = sala.jogadores.length; // Atualiza o número de jogadores
         socket.emit('sala-criada', sala); // Envia a sala criada de volta para o cliente
         io.emit('atualizarListaJogadores', sala.jogadores.map(jogador => jogador.nome)); // Atualiza a lista de jogadores para todos os clientes
       } else {
@@ -58,6 +56,11 @@ io.on('connection', (socket) => {
       } else {
         console.error('Erro: Dados do jogador inválidos recebidos:', data);
       }
+    });
+
+    socket.on('configurarPartida', (sala) => {
+      console.log('Iniciando partida para a sala:', sala);
+      io.emit('iniciarPartida', sala); // Envia o evento de iniciar partida para todos os clientes
     });
   
 });

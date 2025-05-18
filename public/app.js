@@ -1,5 +1,6 @@
 import { inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
+import { inicializarPartidaPage } from "./js/ui/partida.js";
 
 const socket = io(); // Conexão global única
 
@@ -20,7 +21,7 @@ socket.on('sala-criada', (sala) => {
 });
 
 socket.on('atualizarListaJogadores', (lista) => {
-  const container = document.getElementById('containerJogadores');
+  const container = document.getElementById('containerJogadoresLobby');
   container.innerHTML = ''; // Limpa a lista atual
   lista.forEach(nome => {
     const div = document.createElement('div');
@@ -28,5 +29,14 @@ socket.on('atualizarListaJogadores', (lista) => {
     div.textContent = nome;
     container.appendChild(div);
   });
+});
+
+socket.on('iniciarPartida', (sala) => {
+  mostrar('partidaPage'); // Muda para a tela de partida
+  console.log('sala no partida', sala);
+  inicializarPartidaPage(socket, sala); // Inicializa a tela de partida
+  
+
+
 });
      

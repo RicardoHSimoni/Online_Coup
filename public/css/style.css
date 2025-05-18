@@ -46,3 +46,68 @@ button:hover {
     min-width: 100px;
     text-align: center;
 }
+
+header {
+    background: #fff;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    border-bottom: 1px solid #ccc;
+}
+.top-item {
+    width: 60px;
+    height: 60px;
+    background: #e0e0e0;
+    border: 1px solid #999;
+}
+.container {
+    display: flex;
+    height: calc(100vh - 80px);
+}
+.sidebar {
+    width: 200px;
+    background: #fff;
+    border-right: 1px solid #ccc;
+    padding: 10px;
+}
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+.cards {
+    display: flex;
+    gap: 20px;
+}
+.card {
+    width: 150px;
+    height: 200px;
+    background: #e0e0e0;
+    border: 1px solid #999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+
+}
+.currency {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    width: 60px;
+    height: 60px;
+    background: #fff;
+    border-radius: 50%;
+    border: 1px solid #999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+}
