@@ -7,5 +7,6 @@ export default class Sala {
         this.rodada = 0; // Rodada atual
         this.vencedores = []; // Array para armazenar os vencedores
         this.vip = null; // Jogador VIP
+        this.turnoAtual = 0; // Índice do jogador que está na vez
     }
 }

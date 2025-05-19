@@ -66,11 +66,37 @@ header {
     height: calc(100vh - 80px);
 }
 .sidebar {
-    width: 200px;
+    width: 250px;
     background: #fff;
     border-right: 1px solid #ccc;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
 }
+
+.sidebar-item {
+    background: #e0e0e0;
+    border: 1px solid #999;
+    padding: 15px;
+    cursor: pointer;
+    transition: background 0.3s;
+    user-select: none;
+    text-align: center;
+  }
+
+  .sidebar-item:hover {
+    background: #d0d0d0;
+  }
+
+  .sidebar-item.disabled {
+    background: #cccccc;
+    color: #777;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
 .main {
     flex: 1;
     display: flex;

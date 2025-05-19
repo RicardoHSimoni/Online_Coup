@@ -37,7 +37,7 @@ socket.on('iniciarPartida', (sala) => {
   mostrar('partidaPage'); // Muda para a tela de partida
   console.log('sala no partida', sala);
   inicializarPartidaPage(socket, sala); // Inicializa a tela de partida
-  
+  socket.emit('comecarTurno', sala); // Inicia o turno
 
 
 });

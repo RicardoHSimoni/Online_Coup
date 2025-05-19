@@ -21,7 +21,16 @@ app.get('/', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 let salasAtivas = []; // guarda as salas ativas
-let socketsAtivosSala = []; // guarda os sockets ativos
+
+function enviarTurno(sala) {
+  const turno = sala.turnoAtual; // Obtém o turno atual da sala
+  if (sala.jogadores.length > 0) {
+    console.log('Turno atual no enviarTurno:', turno);
+    const jogador = sala.jogadores[turno];
+    io.emit('turno', jogador.id);
+  }
+}
+
 
 io.on('connection', (socket) => {
 
@@ -48,23 +57,33 @@ io.on('connection', (socket) => {
       }
     })
    
-
-    socket.on('novo-jogador', (data) => {
-      if (data && data.nome) {
-        sala.push(data); // Adiciona o jogador à sala
-        console.log('Sala atual:', sala); // Exibe a sala no console
-        io.emit('jogador-adicionado', sala); // Envia o ID e nome do jogador de volta para o cliente
-      } else {
-        console.error('Erro: Dados do jogador inválidos recebidos:', data);
-      }
-    });
-
     socket.on('configurarPartida', (sala) => {
-      console.log('Configurando partida para a sala:', sala);
       configurarPartida(sala); // Chama a função para configurar a partida
       io.emit('iniciarPartida', sala); 
     });
+
+    socket.on('comecarTurno', (sala) => {
+      enviarTurno(sala); // Envia o turno para os jogadores
+    });
+
+    socket.on('jogada', (jogador) => {
+    console.log(`${jogador.nome} fez uma jogada`);
+
+    const sala = salasAtivas.find(sala => sala.jogadores.some(j => j.id === jogador.id)); // Encontra a sala do jogador
+
+    // Avança para o próximo turno
+    console.log('Turno atual:', sala.turnoAtual);
+    sala.turnoAtual = (sala.turnoAtual + 1) % sala.jogadores.length;
+    console.log('Próximo turno:', sala.turnoAtual);
+    enviarTurno(sala);
+  });
+    
   
+});
+
+io.on('disconnect', (socket) => {
+    console.log('Cliente desconectado:', socket.id);
+    // Aqui você pode adicionar lógica para remover o jogador da sala, se necessário
 });
   
   server.listen(3000, () => {

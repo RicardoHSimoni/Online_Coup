@@ -7,11 +7,10 @@ export function configurarPartida(sala) {
     }
     else{
         const baralho = new Baralho(sala.numeroJogadores);
-        console.log('Baralho criado:', baralho);
         sala.baralho = baralho; // Adiciona o baralho à sala
         distribuirCartas(sala.jogadores, sala.baralho); // Distribui as cartas para os jogadores
-        console.log('Cartas distribuídas:', sala.jogadores);
-        console.log('Baralho após distribuição:', sala.baralho);
+        sala.rodada = 1; // Inicia a rodada
+        sala.turnoAtual = 0; // Inicia o turno
     }
     
     
