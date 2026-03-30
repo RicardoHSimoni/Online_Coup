@@ -38,7 +38,8 @@ export function inicializarPartidaPage(socket, sala) {
     document.querySelectorAll(".sidebar-item").forEach(item => {
       item.addEventListener("click", () => {
         if (!souMeuTurno) return;
-        socket.emit('jogada', jogador);
+        let jogada = item.id; // Exemplo: "renda", "ajuda", etc.
+        socket.emit('jogada', jogador, jogada); 
       });
     });
 

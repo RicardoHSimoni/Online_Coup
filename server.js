@@ -66,17 +66,17 @@ io.on('connection', (socket) => {
       enviarTurno(sala); // Envia o turno para os jogadores
     });
 
-    socket.on('jogada', (jogador) => {
-    console.log(`${jogador.nome} fez uma jogada`);
+    socket.on('jogada', (jogador, jogada) => {
+      console.log(`${jogador.nome} fez uma jogada: ${jogada}`);
 
-    const sala = salasAtivas.find(sala => sala.jogadores.some(j => j.id === jogador.id)); // Encontra a sala do jogador
+      const sala = jogador.sala; // Obtém a sala do jogador
 
-    // Avança para o próximo turno
-    console.log('Turno atual:', sala.turnoAtual);
-    sala.turnoAtual = (sala.turnoAtual + 1) % sala.jogadores.length;
-    console.log('Próximo turno:', sala.turnoAtual);
-    enviarTurno(sala);
-  });
+      // Avança para o próximo turno
+      console.log('Turno atual:', sala.turnoAtual);
+      sala.turnoAtual = (sala.turnoAtual + 1) % sala.jogadores.length;
+      console.log('Próximo turno:', sala.turnoAtual);
+      enviarTurno(sala);
+    });
     
   
 });
