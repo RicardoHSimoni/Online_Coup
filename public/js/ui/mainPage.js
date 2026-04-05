@@ -42,7 +42,7 @@ export function inicializarMainPage(socket) {
         const sala = new Sala();
         const jogador = new Jogador(socket.id); // Cria um novo jogador com o ID do socket
         jogador.nome = nomeInputCriar.value; // Define o nome do jogador
-        jogador.sala = sala; // Define a sala do jogador
+        jogador.sala = sala.id; // Define a sala do jogador
         sala.jogadores.push(jogador); // Adiciona o jogador à sala
         sala.vip = jogador; // Define o jogador como VIP
         sala.numeroJogadores = 1; // Define o número de jogadores como 1

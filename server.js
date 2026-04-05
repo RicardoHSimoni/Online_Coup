@@ -69,7 +69,7 @@ io.on('connection', (socket) => {
     socket.on('jogada', (jogador, jogada) => {
       console.log(`${jogador.nome} fez uma jogada: ${jogada}`);
 
-      const sala = jogador.sala; // Obtém a sala do jogador
+      const sala = salasAtivas.find(s => s.id === jogador.sala); // Obtém a sala do jogador
 
       // Avança para o próximo turno
       console.log('Turno atual:', sala.turnoAtual);
