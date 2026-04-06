@@ -11,7 +11,7 @@ export default class Baralho {
         else {
             this.copias = 5;
         }
-        this.valores = ['assassino', 'diplomata', 'ladrao', 'medico', 'banqueiro'];
+        this.valores = ['assassino', 'embaixador', 'capitao', 'condessa', 'duque'];
         this.cartas = [];
         this.iniciarBaralho();
         this.embaralhar();

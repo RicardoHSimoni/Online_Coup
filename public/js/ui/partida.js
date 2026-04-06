@@ -1,6 +1,6 @@
 
 
-export function inicializarPartidaPage(socket, sala) {
+export function inicializarPartidaPage(socket, sala, onComecarTurno) {
 
     const listaJogadores = sala.jogadores.map((jogador) => jogador.nome);
     const container = document.getElementById('containerJogadoresPartida');
@@ -10,10 +10,6 @@ export function inicializarPartidaPage(socket, sala) {
         div.classList.add('jogador');
         div.textContent = jogador;
         container.appendChild(div);
-    });
-
-    socket.on('atualizarDadosJogador', (data) => {
-        
     });
 
     const jogador = sala.jogadores.find((jogador) => jogador.id === socket.id);
@@ -43,7 +39,10 @@ export function inicializarPartidaPage(socket, sala) {
       });
     });
 
-    
+}
+
+function atualizarDadosJogador(jogador) {
+    //implementar lógica para atualizar os dados do jogador na interface, como cartas, moedas, etc.
 }
 
 // Desativa todos os itens da sidebar
@@ -60,8 +59,8 @@ export function inicializarPartidaPage(socket, sala) {
     });
   }
 
-    function atualizarSidebar(ativo) {
-        document.querySelectorAll(".sidebar-item").forEach(item => {
-            item.classList.toggle("disabled", !ativo);
-        });
-    }
+  function atualizarSidebar(ativo) {
+      document.querySelectorAll(".sidebar-item").forEach(item => {
+          item.classList.toggle("disabled", !ativo);
+      });
+  }

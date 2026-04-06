@@ -1,24 +1,31 @@
 // Função para inicializar a página do lobby
+export function inicializarLobbyPage(socket, sala, onIniciarPartida) {
+  atualizarListaJogadores(sala.jogadores); // Atualiza a lista de jogadores ao entrar no lobby
 
-export function inicializarLobbyPage(socket, sala) {
-  const listaJogadores = sala.jogadores?.map(j => j.nome) || [];
+  const codigoSala = document.getElementById('codigoSala');
+  codigoSala.textContent = sala.id;
+
+  const button = document.getElementById('iniciarPartida');
+  button.disabled = socket.id !== sala.vip.id; // Habilita apenas para o jogador VIP
+  button.onclick = () => {
+    console.log('Botao iniciar partida clicado');
+    onIniciarPartida(sala.id);
+  };
+}
+
+// Função para atualizar a lista de jogadores
+export function atualizarListaJogadores(jogadores) {
+  const listaJogadores = jogadores?.map(j => j.nome) || [];
   const container = document.getElementById('containerJogadoresLobby');
-
+  
+  // Limpa a lista atual
+  container.innerHTML = '';
+  
+  // Adiciona os jogadores atualizados
   listaJogadores.forEach((jogador) => {
     const div = document.createElement('div');
     div.classList.add('jogador');
     div.textContent = jogador;
     container.appendChild(div);
   });
-  
-
-  const codigoSala = document.getElementById('codigoSala');
-  codigoSala.textContent = sala.id;
-
-  const button = document.getElementById('iniciarPartida');
-  //button.disabled = listajogadores.length < 2; // Desabilita o botão se houver menos de 2 jogadores
-  button.onclick = () => {
-    console.log('Botao iniciar partida clicado');
-    socket.emit('configurarPartida', sala);
-  };
 }

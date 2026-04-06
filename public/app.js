@@ -1,4 +1,4 @@
-import { inicializarLobbyPage } from "./js/ui/lobby.js";
+import { atualizarListaJogadores, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
 import { inicializarPartidaPage } from "./js/ui/partida.js";
 
@@ -15,14 +15,20 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarMainPage(socket); // Inicializa a tela principal
 });
 
+
+
 socket.on('sala-criada', (salaId) => {
     mostrar('lobbyPage'); // Muda para a tela de lobby
-    socket.emit("obter-sala", salaId);
+    socket.emit("obter-sala-Lobby", salaId);
 });
 
-socket.on("dados-sala", (sala) => {
-    inicializarLobbyPage(socket, sala);
+socket.on("dados-sala-Lobby", (sala) => {
+    inicializarLobbyPage(socket, sala, iniciarPartida);
 });
+
+function iniciarPartida(salaId) {
+    socket.emit('configurarPartida', salaId); // Emite o evento para configurar a partida
+}
 
 socket.on('atualizarListaJogadores', (lista) => {
   const container = document.getElementById('containerJogadoresLobby');
@@ -35,13 +41,25 @@ socket.on('atualizarListaJogadores', (lista) => {
   });
 });
 
-
-socket.on('iniciarPartida', (sala) => {
+socket.on('iniciarPartida', (salaId) => {
   mostrar('partidaPage'); // Muda para a tela de partida
-  console.log('sala no partida', sala);
-  inicializarPartidaPage(socket, sala); // Inicializa a tela de partida
-  socket.emit('comecarTurno', sala); // Inicia o turno
-
-
+  socket.emit("obter-sala-Partida", salaId);
 });
+
+socket.on("dados-sala-Partida", (sala) => {
+  inicializarPartidaPage(socket, sala, comecarTurno); // Inicializa a tela de partida
+  
+});
+
+function comecarTurno(sala) {
+  socket.emit('comecarTurno', sala); // Emite o evento para começar o turno
+}
      
+socket.on('atualizar-sala-Lobby', (sala) => {
+  atualizarListaJogadores(sala); // Atualiza a lista de jogadores na tela do lobby
+});
+
+socket.on('atualizar-sala-Partida', (sala) => {
+  // Implementar lógica para atualizar a interface da partida com os dados da sala atualizada
+  
+});

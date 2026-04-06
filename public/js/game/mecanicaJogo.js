@@ -12,8 +12,6 @@ export function configurarPartida(sala) {
         sala.rodada = 1; // Inicia a rodada
         sala.turnoAtual = 0; // Inicia o turno
     }
-    
-    
 }
 
 export function distribuirCartas(listaJogadores, baralho) {
