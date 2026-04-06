@@ -15,10 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarMainPage(socket); // Inicializa a tela principal
 });
 
-socket.on('sala-criada', (sala) => {
+socket.on('sala-criada', (salaId) => {
     mostrar('lobbyPage'); // Muda para a tela de lobby
-    inicializarLobbyPage(socket, sala); // Inicializa a tela de lobby
-    //console.log('sala no lobby', sala);
+    socket.emit("obter-sala", salaId);
+});
+
+socket.on("dados-sala", (sala) => {
+    inicializarLobbyPage(socket, sala);
 });
 
 socket.on('atualizarListaJogadores', (lista) => {

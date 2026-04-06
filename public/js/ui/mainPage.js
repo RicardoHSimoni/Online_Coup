@@ -1,5 +1,3 @@
-import Sala from "../classes/sala.js";
-import Jogador from "../classes/jogador.js";
 
 export function inicializarMainPage(socket) {
 
@@ -13,10 +11,10 @@ export function inicializarMainPage(socket) {
     button.disabled = nomeInputCriar.value.trim() === '';
 
     const nomeInputEntrar = document.getElementById('nomeJogadorEntrar');
-    const salaId = document.getElementById('salaId');
+    const valorSalaId = document.getElementById('salaId');
     const buttonEntrar = document.getElementById('entrarSala');
     const toggleEntrarButton = () => {
-        buttonEntrar.disabled = nomeInputEntrar.value.trim() === '' || salaId.value.trim() === '';
+        buttonEntrar.disabled = nomeInputEntrar.value.trim() === '' || valorSalaId.value.trim() === '';
     };
 
     nomeInputEntrar.addEventListener('input', toggleEntrarButton);
@@ -27,28 +25,21 @@ export function inicializarMainPage(socket) {
 
     // Entrada na sala
     document.getElementById('entrarSala').onclick = () => {
-        const jogador = new Jogador(socket.id); // Cria um novo jogador com o ID do socket
-        jogador.nome = nomeInputEntrar.value; // Define o nome do jogador
+        
+        const nome = nomeInputEntrar.value; 
+        const salaIdValue = valorSalaId.value; // Garante que o ID da sala seja em maiúsculas   
         
         socket.emit('entrar-sala', {
-            id: salaId.value, // ID da sala
-            jogador: jogador // Jogador que está entrando
+            salaId: salaIdValue, 
+            nome: nome 
         });
 
     };
 
     // Criação de sala
     document.getElementById('criarSala').onclick = () => {
-        const sala = new Sala();
-        const jogador = new Jogador(socket.id); // Cria um novo jogador com o ID do socket
-        jogador.nome = nomeInputCriar.value; // Define o nome do jogador
-        jogador.sala = sala.id; // Define a sala do jogador
-        sala.jogadores.push(jogador); // Adiciona o jogador à sala
-        sala.vip = jogador; // Define o jogador como VIP
-        sala.numeroJogadores = 1; // Define o número de jogadores como 1
-        //console.log('Criando sala:', sala);
-        // Envia a sala para o servidor
-        socket.emit('criar-sala', sala);
+        const nome = nomeInputCriar.value; // Define o nome do jogador
+        socket.emit('criar-sala', nome);
     }
 
 }

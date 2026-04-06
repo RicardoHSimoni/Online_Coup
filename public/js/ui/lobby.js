@@ -1,10 +1,10 @@
 // Função para inicializar a página do lobby
 
 export function inicializarLobbyPage(socket, sala) {
-  const listajogadores = sala.jogadores.map((jogador) => jogador.nome);
+  const listaJogadores = sala.jogadores?.map(j => j.nome) || [];
   const container = document.getElementById('containerJogadoresLobby');
 
-  listajogadores.forEach((jogador) => {
+  listaJogadores.forEach((jogador) => {
     const div = document.createElement('div');
     div.classList.add('jogador');
     div.textContent = jogador;
