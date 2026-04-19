@@ -49,6 +49,7 @@ io.on('connection', (socket) => {
         jogadores.set(socket.id, jogador); // Armazena o jogador no mapa de jogadores
         
         socket.join(sala.id); // Adiciona o socket à sala do Socket.IO
+        console.log(`Socket ${socket.id} criou e entrou na sala ${sala.id}. Sockets na sala:`, Array.from(io.sockets.adapter.rooms.get(sala.id) || []));
 
         jogador.sala = sala.id; // Define a sala do jogador
         sala.jogadores.push(jogador); // Adiciona o jogador à sala
@@ -67,7 +68,9 @@ io.on('connection', (socket) => {
         jogador.sala = salaId; // Define a sala do jogador
         sala.jogadores.push(jogador); // Adiciona o jogador à sala
         sala.numeroJogadores = sala.jogadores.length; // Atualiza o número de jogadores
-        io.to(sala.id).emit('atualizarListaJogadores', sala.jogadores.map(jogador => jogador.nome)); // Atualiza a lista de jogadores para todos os clientes
+        socket.join(sala.id); // Adiciona o socket à sala do Socket.IO
+        console.log(`Socket ${socket.id} entrou na sala ${sala.id}. Sockets na sala:`, Array.from(io.sockets.adapter.rooms.get(sala.id) || []));
+        io.to(sala.id).emit('atualizar-sala-Lobby', sala); // Atualiza a lista de jogadores para todos os clientes
         socket.emit('sala-criada', sala.id); // Envia a sala criada de volta para o cliente
         
       } else {

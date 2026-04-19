@@ -1,6 +1,6 @@
 // Função para inicializar a página do lobby
 export function inicializarLobbyPage(socket, sala, onIniciarPartida) {
-  atualizarListaJogadores(sala.jogadores); // Atualiza a lista de jogadores ao entrar no lobby
+  atualizarListaJogadoresLobby(sala.jogadores); // Atualiza a lista de jogadores ao entrar no lobby
 
   const codigoSala = document.getElementById('codigoSala');
   codigoSala.textContent = sala.id;
@@ -14,7 +14,7 @@ export function inicializarLobbyPage(socket, sala, onIniciarPartida) {
 }
 
 // Função para atualizar a lista de jogadores
-export function atualizarListaJogadores(jogadores) {
+export function atualizarListaJogadoresLobby(jogadores) {
   const listaJogadores = jogadores?.map(j => j.nome) || [];
   const container = document.getElementById('containerJogadoresLobby');
   

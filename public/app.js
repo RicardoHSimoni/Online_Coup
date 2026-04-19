@@ -1,4 +1,4 @@
-import { atualizarListaJogadores, inicializarLobbyPage } from "./js/ui/lobby.js";
+import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
 import { inicializarPartidaPage } from "./js/ui/partida.js";
 
@@ -56,10 +56,10 @@ function comecarTurno(sala) {
 }
      
 socket.on('atualizar-sala-Lobby', (sala) => {
-  atualizarListaJogadores(sala); // Atualiza a lista de jogadores na tela do lobby
+  atualizarListaJogadoresLobby(sala.jogadores); // Atualiza a lista de jogadores na tela do lobby
 });
 
 socket.on('atualizar-sala-Partida', (sala) => {
   // Implementar lógica para atualizar a interface da partida com os dados da sala atualizada
-  
+  atualizarListaJogadoresPartida(sala.jogadores); 
 });
