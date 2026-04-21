@@ -48,11 +48,7 @@ socket.on('partidaConfigurada', (sala) => {
   atualizarPartidaPage(socket, sala); // Inicializa a tela de partida
   // O turno é iniciado automaticamente pelo servidor
 });
-
-//Todo: Implementar lógica de turnos, jogadas, etc.
-// Exemplo de como emitir o evento para avançar para o próximo turno
      
-
 socket.on('seu-turno', (sala) => {
   console.log('Recebido evento de turno para a sala:', sala.id);
   selecionarJogada().then(jogada => {

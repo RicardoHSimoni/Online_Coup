@@ -34,20 +34,6 @@ export function atualizarPartidaPage(socket, sala) {
 
     desativarSidebar(); // Desativa a sidebar inicialmente
 
-
-    /*socket.on('turno', (jogadorId) => {
-      souMeuTurno = jogadorId === socket.id;
-      statusEl.textContent = souMeuTurno ? "Seu turno!" : "Aguardando turno...";
-      atualizarSidebar(souMeuTurno);
-    });
-
-    document.querySelectorAll(".sidebar-item").forEach(item => {
-      item.addEventListener("click", () => {
-        if (!souMeuTurno) return;
-        let jogada = item.id; // Exemplo: "renda", "ajuda", etc.
-        socket.emit('jogada', jogador, jogada); 
-      });
-    });*/
 }
 
 export function selecionarJogada() {

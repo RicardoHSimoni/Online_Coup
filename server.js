@@ -122,7 +122,6 @@ io.on('connection', (socket) => {
       const jogador = jogadores.get(socket.id);
 
       console.log(`${jogador.nome} fez uma jogada: ${jogada}`);
-
       // Avança para o próximo turno
       proximoTurno(sala); // Chama a função para avançar para o próximo turno
     });
