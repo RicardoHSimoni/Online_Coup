@@ -1,6 +1,5 @@
 
-
-export function inicializarPartidaPage(socket, sala, onComecarTurno) {
+export function atualizarPartidaPage(socket, sala) {
 
     const listaJogadores = sala.jogadores.map((jogador) => jogador.nome);
     const container = document.getElementById('containerJogadoresPartida');
@@ -19,13 +18,24 @@ export function inicializarPartidaPage(socket, sala, onComecarTurno) {
     }
     const card1 = document.getElementById('card1');
     const card2 = document.getElementById('card2');
-    card1.textContent = jogador.cartas[0];
-    card2.textContent = jogador.cartas[1];
+    if (Array.isArray(jogador.cartas) && jogador.cartas.length >= 2) {
+        card1.textContent = jogador.cartas[0];
+        card2.textContent = jogador.cartas[1];
+    } else {
+        card1.textContent = '';
+        card2.textContent = '';
+        console.warn('Cartas do jogador estão ausentes ou incompletas.');
+    }
 
     const statusEl = document.getElementById("status");
     let souMeuTurno = false;
 
-    socket.on('turno', (jogadorId) => {
+    statusEl.textContent = "Aguardando turno...";
+
+    desativarSidebar(); // Desativa a sidebar inicialmente
+
+
+    /*socket.on('turno', (jogadorId) => {
       souMeuTurno = jogadorId === socket.id;
       statusEl.textContent = souMeuTurno ? "Seu turno!" : "Aguardando turno...";
       atualizarSidebar(souMeuTurno);
@@ -37,8 +47,28 @@ export function inicializarPartidaPage(socket, sala, onComecarTurno) {
         let jogada = item.id; // Exemplo: "renda", "ajuda", etc.
         socket.emit('jogada', jogador, jogada); 
       });
-    });
+    });*/
+}
 
+export function selecionarJogada() {
+    // ToDo: passar alguns parametros para habilitar apenas as opções de jogada válidas, como moedas, cartas, etc.
+    const statusEl = document.getElementById("status");
+    statusEl.textContent = "Sua vez! Selecione sua jogada.";
+    ativarSidebar(); // Ativa a sidebar para permitir a seleção da jogada
+    return new Promise((resolve) => {
+        document.querySelectorAll(".sidebar-item").forEach(item => {
+            item.addEventListener("click", () => {
+                let jogada = item.id; // Exemplo: "renda", "ajuda", etc.
+                resolve(jogada); // Resolve a promessa com a jogada selecionada
+            }, { once: true }); // Garante que o evento seja ouvido apenas uma vez
+        });
+    });
+}
+
+export function jogadaSelecionada() {
+    const statusEl = document.getElementById("status");
+    statusEl.textContent = "Aguardando turno...";
+    desativarSidebar(); // Desativa a sidebar após a seleção da jogada
 }
 
 function atualizarDadosJogador(jogador) {

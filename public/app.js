@@ -1,6 +1,6 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { inicializarPartidaPage } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada } from "./js/ui/partida.js";
 
 
 const socket = io(); // Conexão global única
@@ -30,6 +30,7 @@ function iniciarPartida(salaId) {
     socket.emit('configurarPartida', salaId); // Emite o evento para configurar a partida
 }
 
+
 socket.on('atualizarListaJogadores', (lista) => {
   const container = document.getElementById('containerJogadoresLobby');
   container.innerHTML = ''; // Limpa a lista atual
@@ -41,20 +42,31 @@ socket.on('atualizarListaJogadores', (lista) => {
   });
 });
 
-socket.on('iniciarPartida', (salaId) => {
+socket.on('partidaConfigurada', (sala) => {
+  console.log('Partida configurada com a sala:', sala);
   mostrar('partidaPage'); // Muda para a tela de partida
-  socket.emit("obter-sala-Partida", salaId);
+  atualizarPartidaPage(socket, sala); // Inicializa a tela de partida
+  // O turno é iniciado automaticamente pelo servidor
 });
 
-socket.on("dados-sala-Partida", (sala) => {
-  inicializarPartidaPage(socket, sala, comecarTurno); // Inicializa a tela de partida
-  
-});
-
-function comecarTurno(sala) {
-  socket.emit('comecarTurno', sala); // Emite o evento para começar o turno
-}
+//Todo: Implementar lógica de turnos, jogadas, etc.
+// Exemplo de como emitir o evento para avançar para o próximo turno
      
+
+socket.on('seu-turno', (sala) => {
+  console.log('Recebido evento de turno para a sala:', sala.id);
+  selecionarJogada().then(jogada => {
+    console.log('Jogada selecionada:', jogada);
+    //ToDo: Validar a jogada, atualizar o estado do jogo, etc.
+    //ToDo: Emitir a jogada específica
+    jogadaSelecionada();
+    socket.emit('jogada', sala.id, jogada); // Emite a jogada para o servidor
+  });
+});
+  
+
+
+
 socket.on('atualizar-sala-Lobby', (sala) => {
   atualizarListaJogadoresLobby(sala.jogadores); // Atualiza a lista de jogadores na tela do lobby
 });

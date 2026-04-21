@@ -27,13 +27,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let salasAtivas = []; // guarda as salas ativas
 
-function enviarTurno(sala) {
+function enviarTurnoJogador(sala) {
+  if (!sala) {
+    console.error('Sala não encontrada ou indefinida em enviarTurnoJogador');
+    return;
+  }
   const turno = sala.turnoAtual; // Obtém o turno atual da sala
   if (sala.jogadores.length > 0) {
     console.log('Turno atual no enviarTurno:', turno);
     const jogador = sala.jogadores[turno];
-    io.emit('turno', jogador.id);
+    console.log('Enviando turno apenas para:', jogador.id);
+    io.to(jogador.id).emit('seu-turno', sala);
+    //nao precisa atualizar a sala para os outros jogadores, pois eles só precisam saber que não é o turno deles, o que já é indicado na interface do usuário. Se quiser atualizar a sala para os outros jogadores, pode emitir um evento separado para indicar que é o turno de outro jogador, mas isso não é estritamente necessário.
+    //io.to(sala.id).emit('atualizar-sala-Partida', sala);
   }
+}
+
+function proximoTurno(sala) {
+  if (!sala) {
+    console.error('Sala não encontrada ou indefinida em proximoTurno');
+    return;
+  }
+  sala.turnoAtual = (sala.turnoAtual + 1) % sala.jogadores.length;
+  enviarTurnoJogador(sala);
 }
 
 
@@ -92,23 +108,23 @@ io.on('connection', (socket) => {
       const sala = salas.get(salaId);
       configurarPartida(sala); // Chama a função para configurar a partida
       console.log('Sala configurada:', sala);
-      io.to(sala.id).emit('iniciarPartida', sala); 
+      sala.turnoAtual = 0; // Inicia o turno no primeiro jogador
+      io.to(sala.id).emit('partidaConfigurada', sala); 
+      enviarTurnoJogador(sala); // Envia o turno inicial
     });
 
     socket.on('comecarTurno', (sala) => {
-      enviarTurno(sala); // Envia o turno para os jogadores
+      enviarTurnoJogador(sala); // Envia o turno para os jogadores
     });
 
-    socket.on('jogada', (jogador, jogada) => {
+    socket.on('jogada', (salaId, jogada) => {
+      const sala = salas.get(salaId);
+      const jogador = jogadores.get(socket.id);
+
       console.log(`${jogador.nome} fez uma jogada: ${jogada}`);
 
-      const sala = salas.get(jogador.sala); // Obtém a sala do jogador
-
       // Avança para o próximo turno
-      console.log('Turno atual:', sala.turnoAtual);
-      sala.turnoAtual = (sala.turnoAtual + 1) % sala.jogadores.length;
-      console.log('Próximo turno:', sala.turnoAtual);
-      enviarTurno(sala);
+      proximoTurno(sala); // Chama a função para avançar para o próximo turno
     });
 
     socket.on("disconnect", () => {
