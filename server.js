@@ -117,6 +117,8 @@ io.on('connection', (socket) => {
       enviarTurnoJogador(sala); // Envia o turno para os jogadores
     });
 
+    /*
+    Exemplo:
     socket.on('jogada', (salaId, jogada) => {
       const sala = salas.get(salaId);
       const jogador = jogadores.get(socket.id);
@@ -124,7 +126,21 @@ io.on('connection', (socket) => {
       console.log(`${jogador.nome} fez uma jogada: ${jogada}`);
       // Avança para o próximo turno
       proximoTurno(sala); // Chama a função para avançar para o próximo turno
+    });*/
+
+    socket.on('jogada-renda', (salaId) => {
+      const sala = salas.get(salaId);
+      const jogador = jogadores.get(socket.id);
+      jogador.moedas += 1; 
+      console.log(`${jogador.nome} fez a jogada: Renda`);
+      io.to(sala.id).emit('mostrar-jogada', 'Renda', jogador); // Emite um evento para mostrar a jogada realizada
     });
+
+    socket.on('proximo-turno', (salaId) => {
+      const sala = salas.get(salaId);
+      proximoTurno(sala);
+    });
+
 
     socket.on("disconnect", () => {
       const jogador = jogadores.get(socket.id);

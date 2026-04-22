@@ -1,4 +1,8 @@
 
+// Duration (in milliseconds) for which the modal is displayed after a play is shown.
+// Change this value to adjust how long the modal remains visible.
+const MODAL_TIMEOUT_MS = 5000;
+
 export function atualizarPartidaPage(socket, sala) {
 
     const listaJogadores = sala.jogadores.map((jogador) => jogador.nome);
@@ -45,6 +49,7 @@ export function selecionarJogada() {
         document.querySelectorAll(".sidebar-item").forEach(item => {
             item.addEventListener("click", () => {
                 let jogada = item.id; // Exemplo: "renda", "ajuda", etc.
+                //ToDo: Validar a jogada selecionada, verificar se o jogador tem os recursos necessários, etc.
                 resolve(jogada); // Resolve a promessa com a jogada selecionada
             }, { once: true }); // Garante que o evento seja ouvido apenas uma vez
         });
@@ -56,6 +61,24 @@ export function jogadaSelecionada() {
     statusEl.textContent = "Aguardando turno...";
     desativarSidebar(); // Desativa a sidebar após a seleção da jogada
 }
+
+export function mostrarJogada(jogada, jogador) {
+    const modalText = document.getElementById("modal-text");
+    modalText.textContent = `${jogador.nome} fez a jogada: ${jogada}`;
+    abrirModal();
+    setTimeout(() => {
+        fecharModal();
+    }, MODAL_TIMEOUT_MS);
+}
+
+function abrirModal() {
+  document.getElementById("modal").classList.remove("hidden");
+}
+
+function fecharModal() {
+  document.getElementById("modal").classList.add("hidden");
+}
+
 
 function atualizarDadosJogador(jogador) {
     //implementar lógica para atualizar os dados do jogador na interface, como cartas, moedas, etc.
