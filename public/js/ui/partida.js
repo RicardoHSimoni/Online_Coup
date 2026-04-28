@@ -1,7 +1,7 @@
 
 // Duration (in milliseconds) for which the modal is displayed after a play is shown.
 // Change this value to adjust how long the modal remains visible.
-const MODAL_TIMEOUT_MS = 5000;
+const MODAL_TIMEOUT_MS = 3000; // 3 seconds
 
 export function atualizarPartidaPage(socket, sala) {
 

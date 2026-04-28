@@ -74,7 +74,7 @@ socket.on('seu-turno', (sala) => {
   
 socket.on('mostrar-jogada', (jogada, jogador) => {
   mostrarJogada(jogada, jogador);
-  socket.emit('proximo-turno', jogador.salaId); // Emite um evento para avançar para o próximo turno
+  socket.emit('proximo-turno', jogador.sala); // Emite um evento para avançar para o próximo turno
 });
   
 
