@@ -1,6 +1,6 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada } from "./js/ui/partida.js";
 
 
 const socket = io(); // Conexão global única
@@ -11,17 +11,7 @@ function mostrar(tela) {
   document.getElementById(tela).style.display = 'block';
 }
 
-function emitirJogadaParaServidor(salaId, jogada) {
-  switch (jogada) {
-    case 'renda':
-      socket.emit('jogada-renda', salaId);
-      break;
-    case 'ajuda':
-      socket.emit('jogada-ajuda', salaId);
-      break;
-  }
-  
-}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     inicializarMainPage(socket); // Inicializa a tela principal
@@ -65,16 +55,20 @@ socket.on('seu-turno', (sala) => {
   console.log('Recebido evento de turno para a sala:', sala.id);
   selecionarJogada().then(jogada => {
     console.log('Jogada selecionada:', jogada);
-    jogadaSelecionada();
     //ToDo: Validar a jogada, atualizar o estado do jogo, etc.
-    //ToDo: Emitir a jogada específica
-    emitirJogadaParaServidor(sala.id, jogada);
+    jogadaSelecionada();
+    socket.emit('jogada', sala.id, jogada); // Emite a jogada selecionada para o servidor
   });
 });
   
 socket.on('mostrar-jogada', (jogada, jogador) => {
   mostrarJogada(jogada, jogador);
-  socket.emit('proximo-turno', jogador.sala); // Emite um evento para avançar para o próximo turno
+  //socket.emit('proximo-turno', jogador.sala); // Emite um evento para avançar para o próximo turno
+});
+
+socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador) => {
+  // Implementar lógica para mostrar que a jogada foi bloqueada, quem bloqueou, etc.
+  mostrarJogadaBloqueada(jogada, jogador, bloqueador);
 });
   
 

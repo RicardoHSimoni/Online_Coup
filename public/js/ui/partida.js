@@ -71,6 +71,12 @@ export function mostrarJogada(jogada, jogador) {
     }, MODAL_TIMEOUT_MS);
 }
 
+export function mostrarJogadaBloqueada(jogada, jogador, bloqueador) {
+    const modalText = document.getElementById("modal-text");
+    modalText.textContent = `${jogador.nome} tentou ${jogada}, mas foi bloqueado por ${bloqueador.nome}!`;
+    abrirModal();
+}
+
 function abrirModal() {
   document.getElementById("modal").classList.remove("hidden");
 }
