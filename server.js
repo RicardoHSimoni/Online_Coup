@@ -28,6 +28,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 let salasAtivas = []; // guarda as salas ativas
 
 function enviarTurnoJogador(sala) {
+  sala.estado = 'AGUARDANDO_JOGADA';
   if (!sala) {
     console.error('Sala não encontrada ou indefinida em enviarTurnoJogador');
     return;
@@ -52,6 +53,79 @@ function proximoTurno(sala) {
   enviarTurnoJogador(sala);
 }
 
+function iniciarJanelaReacao(sala) {
+  sala.timerReacao = setTimeout(() => {
+    resolverJogada(sala);
+  }, 3000); // 3 segundos para bloquear/contestar
+}
+
+function resolverJogada(sala) {
+  sala.estado = 'RESOLVENDO_JOGADA';
+
+  const jogada = sala.jogadaAtual;
+
+  if (jogada.bloqueada) {
+    console.log('Jogada foi bloqueada');
+    // NÃO aplica efeito
+  } else {
+    aplicarEfeitoJogada(jogada);
+  }
+
+  finalizarTurno(sala);
+}
+
+function resolverContestacao(sala) {
+  const jogada = sala.jogadaAtual;
+
+  const temCarta = verificarCarta(jogada.jogador, jogada.tipo);
+
+  if (temCarta) {
+    // contestador perde carta
+    penalizar(jogada.contestador);
+  } else {
+    // jogador mentiu
+    penalizar(jogada.jogador);
+    jogada.cancelada = true;
+  }
+
+  finalizarTurno(sala);
+}
+
+function aplicarEfeitoJogada(jogada) {
+  const jogador = jogada.jogador;
+
+  switch (jogada.tipo) {
+    case 'renda':
+      jogador.moedas += 1;
+      break;
+
+    case 'ajuda':
+      jogador.moedas += 2;
+      break;
+
+    case 'duque':
+      jogador.moedas += 3;
+      break;
+
+    case 'capitao':
+      jogador.moedas += 2;
+      break;  
+
+    case 'assassino':
+      jogador.moedas += 3;
+      break;
+
+     
+
+  }
+}
+
+function finalizarTurno(sala) {
+  sala.jogadaAtual = null;
+  sala.estado = 'PROXIMO_TURNO';
+
+  proximoTurno(sala);
+}
 
 io.on('connection', (socket) => {
 
@@ -117,16 +191,58 @@ io.on('connection', (socket) => {
       enviarTurnoJogador(sala); // Envia o turno para os jogadores
     });
 
-    /*
-    Exemplo:
     socket.on('jogada', (salaId, jogada) => {
       const sala = salas.get(salaId);
       const jogador = jogadores.get(socket.id);
 
-      console.log(`${jogador.nome} fez uma jogada: ${jogada}`);
-      // Avança para o próximo turno
-      proximoTurno(sala); // Chama a função para avançar para o próximo turno
-    });*/
+      sala.estado = 'AGUARDANDO_REACAO';
+
+      sala.jogadaAtual = {
+        tipo: jogada,
+        jogador,
+        bloqueada: false,
+        contestada: false
+      };
+
+      io.to(sala.id).emit('mostrar-jogada', jogada, jogador);
+
+      iniciarJanelaReacao(sala);
+    }); 
+
+    socket.on('jogada-bloqueada', (salaId) => {
+      const sala = salas.get(salaId);
+      const bloqueador = jogadores.get(socket.id);
+
+      if (sala.estado !== 'AGUARDANDO_REACAO') return;
+
+      sala.jogadaAtual.bloqueada = true;
+      sala.jogadaAtual.bloqueador = bloqueador;
+
+      clearTimeout(sala.timerReacao);
+
+      io.to(sala.id).emit(
+        'mostrar-jogada-bloqueada',
+        sala.jogadaAtual.tipo,
+        sala.jogadaAtual.jogador,
+        bloqueador
+      );
+
+      resolverJogada(sala);
+    });
+
+    socket.on('jogada-contestada', (salaId) => {
+      const sala = salas.get(salaId);
+      const contestador = jogadores.get(socket.id);
+
+      if (sala.estado !== 'AGUARDANDO_REACAO') return;
+
+      sala.jogadaAtual.contestada = true;
+      sala.jogadaAtual.contestador = contestador;
+
+      clearTimeout(sala.timerReacao);
+
+      resolverContestacao(sala);
+    });
 
     socket.on('jogada-renda', (salaId) => {
       const sala = salas.get(salaId);

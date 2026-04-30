@@ -1,7 +1,11 @@
 
 // Duration (in milliseconds) for which the modal is displayed after a play is shown.
 // Change this value to adjust how long the modal remains visible.
-const MODAL_TIMEOUT_MS = 5000;
+const MODAL_TIMEOUT_MS = 3000; // 3 seconds
+
+const jogadasBloqueaveis = ['ajuda', 'capitao', 'assassino'];
+
+const jogadasContestaveis = ['duque', 'capitao', 'assassino', 'condessa', 'embaixador'];
 
 export function atualizarPartidaPage(socket, sala) {
 
@@ -64,11 +68,61 @@ export function jogadaSelecionada() {
 
 export function mostrarJogada(jogada, jogador) {
     const modalText = document.getElementById("modal-text");
+    const botaoBloquear = document.getElementById("bloquear");
+    const botaoContestar = document.getElementById("contestar");
+
+    limparAcoesModal();
+
     modalText.textContent = `${jogador.nome} fez a jogada: ${jogada}`;
+
+    if (jogadasBloqueaveis.includes(jogada)) {
+        botaoBloquear.classList.remove("hidden");
+        botaoBloquear.onclick = () => {
+            document.dispatchEvent(new CustomEvent('jogada-bloquear', {
+                detail: jogador.sala
+            }));
+            fecharModal();
+            limparAcoesModal();
+        };
+    }
+
+    if (jogadasContestaveis.includes(jogada)) {
+        botaoContestar.classList.remove("hidden");
+        botaoContestar.onclick = () => {
+            document.dispatchEvent(new CustomEvent('jogada-contestar', {
+                detail: jogador.sala
+            }));
+            fecharModal();
+            limparAcoesModal();
+        };
+    }
+
     abrirModal();
     setTimeout(() => {
         fecharModal();
+        limparAcoesModal();
     }, MODAL_TIMEOUT_MS);
+}
+
+function limparAcoesModal() {
+    const botaoBloquear = document.getElementById("bloquear");
+    const botaoContestar = document.getElementById("contestar");
+    botaoBloquear.classList.add("hidden");
+    botaoContestar.classList.add("hidden");
+    botaoBloquear.onclick = null;
+    botaoContestar.onclick = null;
+}
+
+export function mostrarJogadaBloqueada(jogada, jogador, bloqueador) {
+    const modalText = document.getElementById("modal-text");
+    modalText.textContent = `${jogador.nome} tentou ${jogada}, mas foi bloqueado por ${bloqueador.nome}!`;
+    abrirModal();
+}
+
+export function mostrarJogadaContestada(jogada, jogador, contestador) {
+    const modalText = document.getElementById("modal-text");
+    modalText.textContent = `${jogador.nome} tentou ${jogada}, mas foi contestado por ${contestador.nome}!`;
+    abrirModal();
 }
 
 function abrirModal() {
