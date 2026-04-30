@@ -28,6 +28,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 let salasAtivas = []; // guarda as salas ativas
 
 function enviarTurnoJogador(sala) {
+  sala.estado = 'AGUARDANDO_JOGADA';
   if (!sala) {
     console.error('Sala não encontrada ou indefinida em enviarTurnoJogador');
     return;

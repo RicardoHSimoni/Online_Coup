@@ -1,6 +1,6 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada } from "./js/ui/partida.js";
 
 
 const socket = io(); // Conexão global única
@@ -66,9 +66,24 @@ socket.on('mostrar-jogada', (jogada, jogador) => {
   //socket.emit('proximo-turno', jogador.sala); // Emite um evento para avançar para o próximo turno
 });
 
+document.addEventListener('jogada-bloquear', (event) => {
+  const salaId = event.detail;
+  socket.emit('jogada-bloqueada', salaId);
+});
+
+document.addEventListener('jogada-contestar', (event) => {
+  const salaId  = event.detail;
+  socket.emit('jogada-contestada', salaId);
+});
+
 socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador) => {
   // Implementar lógica para mostrar que a jogada foi bloqueada, quem bloqueou, etc.
   mostrarJogadaBloqueada(jogada, jogador, bloqueador);
+});
+
+socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
+  // Implementar lógica para mostrar que a jogada foi contestada, quem contestou, etc.
+  mostrarJogadaContestada(jogada, jogador, contestador);
 });
   
 
