@@ -75,7 +75,10 @@ export function mostrarJogada(jogada, jogador) {
 
     modalText.textContent = `${jogador.nome} fez a jogada: ${jogada}`;
 
-    if (jogadasBloqueaveis.includes(jogada)) {
+    const podeBloquear = jogadasBloqueaveis.includes(jogada);
+    const podeContestar = jogadasContestaveis.includes(jogada);
+
+    if (podeBloquear) {
         botaoBloquear.classList.remove("hidden");
         botaoBloquear.onclick = () => {
             document.dispatchEvent(new CustomEvent('jogada-bloquear', {
@@ -86,7 +89,7 @@ export function mostrarJogada(jogada, jogador) {
         };
     }
 
-    if (jogadasContestaveis.includes(jogada)) {
+    if (podeContestar) {
         botaoContestar.classList.remove("hidden");
         botaoContestar.onclick = () => {
             document.dispatchEvent(new CustomEvent('jogada-contestar', {
