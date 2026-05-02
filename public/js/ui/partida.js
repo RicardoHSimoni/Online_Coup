@@ -38,6 +38,10 @@ export function atualizarPartidaPage(socket, sala) {
     const statusEl = document.getElementById("status");
     let souMeuTurno = false;
 
+    const moedas =  document.getElementById("moedas");
+    moedas.textContent = `${jogador.moedas}`;
+    
+
     statusEl.textContent = "Aguardando turno...";
 
     desativarSidebar(); // Desativa a sidebar inicialmente

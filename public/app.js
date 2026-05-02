@@ -11,13 +11,9 @@ function mostrar(tela) {
   document.getElementById(tela).style.display = 'block';
 }
 
-
-
 document.addEventListener('DOMContentLoaded', () => {
     inicializarMainPage(socket); // Inicializa a tela principal
 });
-
-
 
 socket.on('sala-criada', (salaId) => {
     mostrar('lobbyPage'); // Muda para a tela de lobby
@@ -98,5 +94,5 @@ socket.on('atualizar-sala-Lobby', (sala) => {
 
 socket.on('atualizar-sala-Partida', (sala) => {
   // Implementar lógica para atualizar a interface da partida com os dados da sala atualizada
-  atualizarListaJogadoresPartida(sala.jogadores); 
+  atualizarPartidaPage(socket, sala); 
 });

@@ -38,9 +38,10 @@ function enviarTurnoJogador(sala) {
     console.log('Turno atual no enviarTurno:', turno);
     const jogador = sala.jogadores[turno];
     console.log('Enviando turno apenas para:', jogador.id);
+    io.to(sala.id).emit('atualizar-sala-Partida', sala);
     io.to(jogador.id).emit('seu-turno', sala);
     //nao precisa atualizar a sala para os outros jogadores, pois eles só precisam saber que não é o turno deles, o que já é indicado na interface do usuário. Se quiser atualizar a sala para os outros jogadores, pode emitir um evento separado para indicar que é o turno de outro jogador, mas isso não é estritamente necessário.
-    //io.to(sala.id).emit('atualizar-sala-Partida', sala);
+    
   }
 }
 
@@ -64,8 +65,8 @@ function resolverJogada(sala) {
 
   const jogada = sala.jogadaAtual;
 
-  if (jogada.bloqueada) {
-    console.log('Jogada foi bloqueada');
+  if (jogada.bloqueada || jogada.contestada) {
+    console.log('Jogada foi bloqueada ou contestada');
     // NÃO aplica efeito
   } else {
     aplicarEfeitoJogada(jogada);
@@ -93,6 +94,7 @@ function resolverContestacao(sala) {
 
 function aplicarEfeitoJogada(jogada) {
   const jogador = jogada.jogador;
+  const alvo = jogada.alvo;
 
   switch (jogada.tipo) {
     case 'renda':
@@ -109,13 +111,22 @@ function aplicarEfeitoJogada(jogada) {
 
     case 'capitao':
       jogador.moedas += 2;
+      alvo.moedas -= 2;
       break;  
 
     case 'assassino':
-      jogador.moedas += 3;
+      jogador.moedas -= 3;
+      //logica para alvo escolher carta para perder
       break;
 
-     
+    case 'embaixador':
+      // lógica para trocar cartas
+      break;
+
+    case 'golpe':
+      jogador.moedas -= 7;
+      //logica para alvo escolher carta para perder]
+      break;
 
   }
 }
