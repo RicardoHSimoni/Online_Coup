@@ -139,7 +139,6 @@ io.on('connection', (socket) => {
         jogadores.set(socket.id, jogador); // Armazena o jogador no mapa de jogadores
         
         socket.join(sala.id); // Adiciona o socket à sala do Socket.IO
-        console.log(`Socket ${socket.id} criou e entrou na sala ${sala.id}. Sockets na sala:`, Array.from(io.sockets.adapter.rooms.get(sala.id) || []));
 
         jogador.sala = sala.id; // Define a sala do jogador
         sala.jogadores.push(jogador); // Adiciona o jogador à sala
@@ -191,20 +190,22 @@ io.on('connection', (socket) => {
       enviarTurnoJogador(sala); // Envia o turno para os jogadores
     });
 
-    socket.on('jogada', (salaId, jogada) => {
+    socket.on('jogada', (salaId, jogada, alvo) => {
       const sala = salas.get(salaId);
       const jogador = jogadores.get(socket.id);
+      const alvoJogador = jogadores.get(alvo);
 
       sala.estado = 'AGUARDANDO_REACAO';
 
       sala.jogadaAtual = {
         tipo: jogada,
         jogador,
+        alvo: alvoJogador,
         bloqueada: false,
         contestada: false
       };
 
-      io.to(sala.id).emit('mostrar-jogada', jogada, jogador);
+      io.to(sala.id).emit('mostrar-jogada', sala.jogadaAtual); // Emite um evento para mostrar a jogada realizada
 
       iniciarJanelaReacao(sala);
     }); 
@@ -222,9 +223,7 @@ io.on('connection', (socket) => {
 
       io.to(sala.id).emit(
         'mostrar-jogada-bloqueada',
-        sala.jogadaAtual.tipo,
-        sala.jogadaAtual.jogador,
-        bloqueador
+        sala.jogadaAtual
       );
 
       resolverJogada(sala);

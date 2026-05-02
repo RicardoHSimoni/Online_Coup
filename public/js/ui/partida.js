@@ -44,16 +44,43 @@ export function atualizarPartidaPage(socket, sala) {
 
 }
 
-export function selecionarJogada() {
+export function selecionarJogadorAlvo(socket, sala) {
+    return new Promise((resolve) => {
+
+        const modal = document.getElementById("modal-alvo");
+        const lista = document.getElementById("lista-alvos");
+
+        // limpa lista anterior
+        lista.innerHTML = "";
+
+        const jogadores = sala.jogadores.filter(j => j.id !== socket.id);
+
+        jogadores.forEach(jogador => {
+            const btn = document.createElement("button");
+            btn.classList.add("alvo-btn");
+            btn.textContent = jogador.nome;
+
+            btn.onclick = () => {
+                fecharModalAlvo();
+                resolve(jogador);
+            };
+
+            lista.appendChild(btn);
+        });
+
+        abrirModalAlvo();
+    });
+}
+
+export function selecionarJogada(moedas) {
     // ToDo: passar alguns parametros para habilitar apenas as opções de jogada válidas, como moedas, cartas, etc.
     const statusEl = document.getElementById("status");
     statusEl.textContent = "Sua vez! Selecione sua jogada.";
-    ativarSidebar(); // Ativa a sidebar para permitir a seleção da jogada
+    ativarSidebar(moedas); // Ativa a sidebar para permitir a seleção da jogada
     return new Promise((resolve) => {
         document.querySelectorAll(".sidebar-item").forEach(item => {
             item.addEventListener("click", () => {
-                let jogada = item.id; // Exemplo: "renda", "ajuda", etc.
-                //ToDo: Validar a jogada selecionada, verificar se o jogador tem os recursos necessários, etc.
+                let jogada = item.id; // Exemplo: "renda", "ajuda", etc
                 resolve(jogada); // Resolve a promessa com a jogada selecionada
             }, { once: true }); // Garante que o evento seja ouvido apenas uma vez
         });
@@ -66,14 +93,19 @@ export function jogadaSelecionada() {
     desativarSidebar(); // Desativa a sidebar após a seleção da jogada
 }
 
-export function mostrarJogada(jogada, jogador) {
+export function mostrarJogada(jogada, jogador, alvo) {
     const modalText = document.getElementById("modal-text");
     const botaoBloquear = document.getElementById("bloquear");
     const botaoContestar = document.getElementById("contestar");
 
     limparAcoesModal();
 
-    modalText.textContent = `${jogador.nome} fez a jogada: ${jogada}`;
+    if (alvo) {
+        modalText.textContent = `${jogador.nome} fez a jogada: ${jogada} contra ${alvo.nome}`;
+    }
+    else {
+        modalText.textContent = `${jogador.nome} fez a jogada: ${jogada}`;
+    }
 
     const podeBloquear = jogadasBloqueaveis.includes(jogada);
     const podeContestar = jogadasContestaveis.includes(jogada);
@@ -107,6 +139,7 @@ export function mostrarJogada(jogada, jogador) {
     }, MODAL_TIMEOUT_MS);
 }
 
+
 function limparAcoesModal() {
     const botaoBloquear = document.getElementById("bloquear");
     const botaoContestar = document.getElementById("contestar");
@@ -136,6 +169,14 @@ function fecharModal() {
   document.getElementById("modal").classList.add("hidden");
 }
 
+function abrirModalAlvo() {
+    document.getElementById("modal-alvo").classList.remove("hidden");
+}
+
+function fecharModalAlvo() {
+    document.getElementById("modal-alvo").classList.add("hidden");
+}
+
 
 function atualizarDadosJogador(jogador) {
     //implementar lógica para atualizar os dados do jogador na interface, como cartas, moedas, etc.
@@ -148,10 +189,13 @@ function atualizarDadosJogador(jogador) {
     });
   }
 
-  // Ativa todos os itens da sidebar
-  function ativarSidebar() {
+  // Ativa todos os itens da sidebar, mas habilita assassino apenas com moedas >= 3 e golpe apenas com moedas >= 7
+  function ativarSidebar(moedas) {
     document.querySelectorAll('.sidebar-item').forEach(item => {
       item.classList.remove('disabled');
+      if ((item.id === 'assassino' && moedas < 3) || (item.id === 'golpe' && moedas < 7)) {
+        item.classList.add('disabled');
+      }
     });
   }
 

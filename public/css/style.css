@@ -160,3 +160,27 @@ header {
   padding: 20px;
   border-radius: 10px;
 }
+
+#modal-alvo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#lista-alvos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alvo-btn {
+  padding: 10px;
+  cursor: pointer;
+}

@@ -1,6 +1,6 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo } from "./js/ui/partida.js";
 
 
 const socket = io(); // Conexão global única
@@ -45,25 +45,29 @@ socket.on('atualizarListaJogadores', (lista) => {
 });
 
 socket.on('partidaConfigurada', (sala) => {
-  console.log('Partida configurada com a sala:', sala);
   mostrar('partidaPage'); // Muda para a tela de partida
   atualizarPartidaPage(socket, sala); // Inicializa a tela de partida
   // O turno é iniciado automaticamente pelo servidor
 });
      
-socket.on('seu-turno', (sala) => {
-  console.log('Recebido evento de turno para a sala:', sala.id);
-  selecionarJogada().then(jogada => {
-    console.log('Jogada selecionada:', jogada);
-    //ToDo: Validar a jogada, atualizar o estado do jogo, etc.
-    jogadaSelecionada();
-    socket.emit('jogada', sala.id, jogada); // Emite a jogada selecionada para o servidor
-  });
+socket.on('seu-turno', async (sala) => {
+  let moedas = sala.jogadores.find(jogador => jogador.id === socket.id)?.moedas || 0; // Obtém as moedas do jogador atual
+  const jogada = await selecionarJogada(moedas);
+  //ToDo: Validar a jogada, atualizar o estado do jogo, etc.
+  jogadaSelecionada();
+
+  let alvo = null;
+
+  if (['capitao', 'assassino', 'golpe'].includes(jogada)) {
+    alvo = await selecionarJogadorAlvo(socket, sala);
+  }
+
+  socket.emit('jogada', sala.id, jogada, alvo?.id); // Emite a jogada selecionada para o servidor
 });
+
   
-socket.on('mostrar-jogada', (jogada, jogador) => {
-  mostrarJogada(jogada, jogador);
-  //socket.emit('proximo-turno', jogador.sala); // Emite um evento para avançar para o próximo turno
+socket.on('mostrar-jogada', (jogadaAtual) => {
+  mostrarJogada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.alvo);
 });
 
 document.addEventListener('jogada-bloquear', (event) => {
@@ -76,14 +80,14 @@ document.addEventListener('jogada-contestar', (event) => {
   socket.emit('jogada-contestada', salaId);
 });
 
-socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador) => {
+socket.on('mostrar-jogada-bloqueada', (jogadaAtual) => {
   // Implementar lógica para mostrar que a jogada foi bloqueada, quem bloqueou, etc.
-  mostrarJogadaBloqueada(jogada, jogador, bloqueador);
+  mostrarJogadaBloqueada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.bloqueador);
 });
 
-socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
+socket.on('mostrar-jogada-contestada', (jogadaAtual) => {
   // Implementar lógica para mostrar que a jogada foi contestada, quem contestou, etc.
-  mostrarJogadaContestada(jogada, jogador, contestador);
+  mostrarJogadaContestada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.contestador);
 });
   
 
