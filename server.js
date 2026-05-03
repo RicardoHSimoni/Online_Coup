@@ -28,11 +28,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 let salasAtivas = []; // guarda as salas ativas
 
 function enviarTurnoJogador(sala) {
-  sala.estado = 'AGUARDANDO_JOGADA';
   if (!sala) {
     console.error('Sala não encontrada ou indefinida em enviarTurnoJogador');
     return;
   }
+  sala.estado = 'AGUARDANDO_JOGADA';
   const turno = sala.turnoAtual; // Obtém o turno atual da sala
   if (sala.jogadores.length > 0) {
     console.log('Turno atual no enviarTurno:', turno);
@@ -54,23 +54,55 @@ function proximoTurno(sala) {
   enviarTurnoJogador(sala);
 }
 
+function perderCarta(jogador) {
+  if (jogador.cartas.length > 0) {
+    const sala = salas.get(jogador.sala);
+    iniciarJanelaReacaoEscolherCarta(sala); // Inicia a janela de reação para escolher a carta a perder
+    io.to(jogador.id).emit('escolher-carta-perder', { cartas: jogador.cartas }); // Envia um evento para o jogador escolher a carta a perder
+
+    if (jogador.cartas.length === 0) {
+      // Jogador eliminado, pode implementar lógica adicional aqui (ex: remover da sala, etc.)
+      console.log(`${jogador.nome} foi eliminado!`);
+    }
+  }
+}
+
 function iniciarJanelaReacao(sala) {
   sala.timerReacao = setTimeout(() => {
     resolverJogada(sala);
   }, 3000); // 3 segundos para bloquear/contestar
 }
 
-function resolverJogada(sala) {
-  sala.estado = 'RESOLVENDO_JOGADA';
+function iniciarJanelaReacaoEscolherCarta(sala) {
+  sala.timerReacao = setTimeout(() => {
+    // Se o jogador não escolher a carta a tempo, penaliza ele automaticamente (perde a carta mais à direita, por exemplo)
+    const jogador = sala.jogadaAtual.alvo;
+    perderCartaAutomatico(jogador);
+    finalizarTurno(sala);
+  }, 10000); // 10 segundos para escolher a carta a perder
+}
 
+function perderCartaAutomatico(jogador) {
+  jogador.cartas.pop();
+}
+
+
+function resolverJogada(sala) {
   const jogada = sala.jogadaAtual;
 
-  if (jogada.bloqueada || jogada.contestada) {
-    console.log('Jogada foi bloqueada ou contestada');
-    // NÃO aplica efeito
-  } else {
-    aplicarEfeitoJogada(jogada);
+  // Se precisa perder carta e ainda não perdeu
+  if (
+    (jogada.tipo === 'assassino' || jogada.tipo === 'golpe') &&
+    !jogada.cartaJaPerdida
+  ) {
+    jogada.cartaJaPerdida = true;
+
+    perderCarta(jogada.alvo);
+    return; // ⛔ PARA aqui
   }
+
+  // Agora sim resolve de verdade
+  aplicarEfeitoJogada(jogada);
 
   finalizarTurno(sala);
 }
@@ -82,14 +114,18 @@ function resolverContestacao(sala) {
 
   if (temCarta) {
     // contestador perde carta
-    penalizar(jogada.contestador);
+    perderCarta(jogada.contestador);
   } else {
     // jogador mentiu
-    penalizar(jogada.jogador);
+    perderCarta(jogada.jogador);
     jogada.cancelada = true;
   }
 
   finalizarTurno(sala);
+}
+
+function verificarCarta(jogador, tipo) {
+  return jogador.cartas.includes(tipo);
 }
 
 function aplicarEfeitoJogada(jogada) {
@@ -116,16 +152,15 @@ function aplicarEfeitoJogada(jogada) {
 
     case 'assassino':
       jogador.moedas -= 3;
-      //logica para alvo escolher carta para perder
+      console.log('Jogada é direcionada, aplicando efeito e fazendo alvo perder carta');
       break;
 
     case 'embaixador':
-      // lógica para trocar cartas
+      // TODO: lógica para trocar cartas
       break;
 
     case 'golpe':
       jogador.moedas -= 7;
-      //logica para alvo escolher carta para perder]
       break;
 
   }
@@ -202,9 +237,14 @@ io.on('connection', (socket) => {
     });
 
     socket.on('jogada', (salaId, jogada, alvo) => {
+    
+
       const sala = salas.get(salaId);
       const jogador = jogadores.get(socket.id);
       const alvoJogador = jogadores.get(alvo);
+
+      if (!sala) return;
+      if (sala.estado !== 'AGUARDANDO_JOGADA') return;
 
       sala.estado = 'AGUARDANDO_REACAO';
 
@@ -213,13 +253,35 @@ io.on('connection', (socket) => {
         jogador,
         alvo: alvoJogador,
         bloqueada: false,
-        contestada: false
+        contestada: false,
+        cartaJaPerdida: false
       };
 
-      io.to(sala.id).emit('mostrar-jogada', sala.jogadaAtual); // Emite um evento para mostrar a jogada realizada
+      io.to(sala.id).emit('mostrar-jogada', jogada, jogador, alvoJogador); // Emite um evento para mostrar a jogada realizada
 
       iniciarJanelaReacao(sala);
     }); 
+
+    socket.on('carta-selecionada', (carta) => {
+
+      const jogador = jogadores.get(socket.id);
+
+      const sala = salas.get(jogador.sala);
+
+      clearTimeout(sala.timerReacao); // Limpa o timer de reação para escolher carta
+
+      // Remove a carta selecionada do jogador
+      const index = jogador.cartas.indexOf(carta);
+      if (index > -1) {
+        jogador.cartas.splice(index, 1);
+        console.log(`${jogador.nome} perdeu a carta: ${carta}`);
+      } else {
+        console.warn(`Carta ${carta} não encontrada para o jogador ${jogador.nome}`);
+      } 
+      
+      resolverJogada(sala);
+
+    });
 
     socket.on('jogada-bloqueada', (salaId) => {
       const sala = salas.get(salaId);
@@ -234,10 +296,12 @@ io.on('connection', (socket) => {
 
       io.to(sala.id).emit(
         'mostrar-jogada-bloqueada',
-        sala.jogadaAtual
+        sala.jogadaAtual.tipo,
+        sala.jogadaAtual.jogador,
+        sala.jogadaAtual.bloqueador
       );
 
-      resolverJogada(sala);
+      finalizarTurno(sala);
     });
 
     socket.on('jogada-contestada', (salaId) => {
@@ -254,13 +318,6 @@ io.on('connection', (socket) => {
       resolverContestacao(sala);
     });
 
-    socket.on('jogada-renda', (salaId) => {
-      const sala = salas.get(salaId);
-      const jogador = jogadores.get(socket.id);
-      jogador.moedas += 1; 
-      console.log(`${jogador.nome} fez a jogada: Renda`);
-      io.to(sala.id).emit('mostrar-jogada', 'Renda', jogador); // Emite um evento para mostrar a jogada realizada
-    });
 
     socket.on('proximo-turno', (salaId) => {
       const sala = salas.get(salaId);

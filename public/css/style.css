@@ -184,3 +184,27 @@ header {
   padding: 10px;
   cursor: pointer;
 }
+
+#modal-escolher-carta {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#lista-cartas-perder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.carta-perder-btn {
+  padding: 10px;
+  cursor: pointer;
+}

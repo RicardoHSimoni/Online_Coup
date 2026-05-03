@@ -26,14 +26,10 @@ export function atualizarPartidaPage(socket, sala) {
     }
     const card1 = document.getElementById('card1');
     const card2 = document.getElementById('card2');
-    if (Array.isArray(jogador.cartas) && jogador.cartas.length >= 2) {
-        card1.textContent = jogador.cartas[0];
-        card2.textContent = jogador.cartas[1];
-    } else {
-        card1.textContent = '';
-        card2.textContent = '';
-        console.warn('Cartas do jogador estão ausentes ou incompletas.');
-    }
+    
+    
+    card1.textContent = jogador.cartas[0] || '';
+    card2.textContent = jogador.cartas[1] || '';
 
     const statusEl = document.getElementById("status");
     let souMeuTurno = false;
@@ -74,6 +70,33 @@ export function selecionarJogadorAlvo(socket, sala) {
 
         abrirModalAlvo();
     });
+}
+
+export function selecionarCartaPerder(socket, cartas) {
+    return new Promise((resolve) => {
+
+        const modal = document.getElementById("modal-escolher-carta");
+        const lista = document.getElementById("lista-cartas-perder");
+
+        // limpa lista anterior
+        lista.innerHTML = "";
+
+        cartas.forEach(carta => {
+            const btn = document.createElement("button");
+            btn.classList.add("carta-perder-btn");
+            btn.textContent = carta;
+
+            btn.onclick = () => {
+                fecharModalEscolherCarta();
+                resolve(carta);
+            };
+
+            lista.appendChild(btn);
+        });
+
+        abrirModalEscolherCarta();
+    });
+
 }
 
 export function selecionarJogada(moedas) {
@@ -179,6 +202,14 @@ function abrirModalAlvo() {
 
 function fecharModalAlvo() {
     document.getElementById("modal-alvo").classList.add("hidden");
+}
+
+function abrirModalEscolherCarta() {
+    document.getElementById("modal-escolher-carta").classList.remove("hidden");
+}
+
+function fecharModalEscolherCarta() {
+    document.getElementById("modal-escolher-carta").classList.add("hidden");
 }
 
 

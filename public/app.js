@@ -1,7 +1,8 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo, selecionarCartaPerder } from "./js/ui/partida.js";
 
+const jogadasDirecionadas = ['capitao', 'assassino', 'golpe']; // Exemplo de jogadas que precisam de alvo
 
 const socket = io(); // Conexão global única
 
@@ -54,16 +55,22 @@ socket.on('seu-turno', async (sala) => {
 
   let alvo = null;
 
-  if (['capitao', 'assassino', 'golpe'].includes(jogada)) {
+  if (jogadasDirecionadas.includes(jogada)) {
     alvo = await selecionarJogadorAlvo(socket, sala);
   }
 
   socket.emit('jogada', sala.id, jogada, alvo?.id); // Emite a jogada selecionada para o servidor
 });
 
+socket.on('escolher-carta-perder', async (dados) => {
+  // Implementar lógica para mostrar a janela de escolha de carta a perder
+  const carta = await selecionarCartaPerder(socket, dados.cartas);
   
-socket.on('mostrar-jogada', (jogadaAtual) => {
-  mostrarJogada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.alvo);
+  socket.emit('carta-selecionada', carta);
+});
+
+socket.on('mostrar-jogada', (jogada, jogador, alvo) => {
+  mostrarJogada(jogada, jogador, alvo);
 });
 
 document.addEventListener('jogada-bloquear', (event) => {
@@ -76,17 +83,16 @@ document.addEventListener('jogada-contestar', (event) => {
   socket.emit('jogada-contestada', salaId);
 });
 
-socket.on('mostrar-jogada-bloqueada', (jogadaAtual) => {
+socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador) => {
   // Implementar lógica para mostrar que a jogada foi bloqueada, quem bloqueou, etc.
-  mostrarJogadaBloqueada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.bloqueador);
+  mostrarJogadaBloqueada(jogada, jogador, bloqueador);
 });
 
-socket.on('mostrar-jogada-contestada', (jogadaAtual) => {
+socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
   // Implementar lógica para mostrar que a jogada foi contestada, quem contestou, etc.
-  mostrarJogadaContestada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.contestador);
+  mostrarJogadaContestada(jogada, jogador, contestador);
 });
   
-
 
 socket.on('atualizar-sala-Lobby', (sala) => {
   atualizarListaJogadoresLobby(sala.jogadores); // Atualiza a lista de jogadores na tela do lobby
