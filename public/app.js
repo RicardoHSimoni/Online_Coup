@@ -43,12 +43,12 @@ socket.on('atualizarListaJogadores', (lista) => {
 
 socket.on('partidaConfigurada', (sala) => {
   mostrar('partidaPage'); // Muda para a tela de partida
-  atualizarPartidaPage(socket, sala); // Inicializa a tela de partida
+  atualizarPartidaPage(socket, sala.jogadores); // Inicializa a tela de partida
   // O turno é iniciado automaticamente pelo servidor
 });
      
-socket.on('seu-turno', async (sala) => {
-  let moedas = sala.jogadores.find(jogador => jogador.id === socket.id)?.moedas || 0; // Obtém as moedas do jogador atual
+socket.on('seu-turno', async (moedas, jogadores) => {
+  // const moedas = sala.jogadores.find(jogador => jogador.id === socket.id)?.moedas || 0; // Obtém as moedas do jogador atual
   const jogada = await selecionarJogada(moedas);
   //ToDo: Validar a jogada, atualizar o estado do jogo, etc.
   jogadaSelecionada();
@@ -56,10 +56,10 @@ socket.on('seu-turno', async (sala) => {
   let alvo = null;
 
   if (jogadasDirecionadas.includes(jogada)) {
-    alvo = await selecionarJogadorAlvo(socket, sala);
+    alvo = await selecionarJogadorAlvo(socket, jogadores);
   }
 
-  socket.emit('jogada', sala.id, jogada, alvo?.id); // Emite a jogada selecionada para o servidor
+  socket.emit('jogada', jogada, alvo?.id); // Emite a jogada selecionada para o servidor
 });
 
 socket.on('escolher-carta-perder', async (dados) => {
@@ -70,7 +70,8 @@ socket.on('escolher-carta-perder', async (dados) => {
 });
 
 socket.on('mostrar-jogada', (jogada, jogador, alvo) => {
-  mostrarJogada(jogada, jogador, alvo);
+  const oMesmo = jogador.id === socket.id;
+  mostrarJogada(jogada, jogador, alvo, oMesmo);
 });
 
 document.addEventListener('jogada-bloquear', (event) => {
@@ -98,7 +99,7 @@ socket.on('atualizar-sala-Lobby', (sala) => {
   atualizarListaJogadoresLobby(sala.jogadores); // Atualiza a lista de jogadores na tela do lobby
 });
 
-socket.on('atualizar-sala-Partida', (sala) => {
+socket.on('atualizar-sala-Partida', (jogadores) => {
   // Implementar lógica para atualizar a interface da partida com os dados da sala atualizada
-  atualizarPartidaPage(socket, sala); 
+  atualizarPartidaPage(socket, jogadores); 
 });

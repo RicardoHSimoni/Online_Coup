@@ -38,9 +38,10 @@ function enviarTurnoJogador(sala) {
     console.log('Turno atual no enviarTurno:', turno);
     const jogador = sala.jogadores[turno];
     console.log('Enviando turno apenas para:', jogador.id);
-    io.to(sala.id).emit('atualizar-sala-Partida', sala);
-    io.to(jogador.id).emit('seu-turno', sala);
-    //nao precisa atualizar a sala para os outros jogadores, pois eles só precisam saber que não é o turno deles, o que já é indicado na interface do usuário. Se quiser atualizar a sala para os outros jogadores, pode emitir um evento separado para indicar que é o turno de outro jogador, mas isso não é estritamente necessário.
+
+    io.to(sala.id).emit('atualizar-sala-Partida', sala.jogadores); // Atualiza a sala para todos os jogadores (para atualizar a interface, mostrar quem é o jogador atual, etc.)
+
+    io.to(jogador.id).emit('seu-turno', jogador.moedas, sala.jogadores); // Envia o turno apenas para o jogador atual, junto com a quantidade de moedas que ele tem
     
   }
 }
@@ -59,11 +60,6 @@ function perderCarta(jogador) {
     const sala = salas.get(jogador.sala);
     iniciarJanelaReacaoEscolherCarta(sala); // Inicia a janela de reação para escolher a carta a perder
     io.to(jogador.id).emit('escolher-carta-perder', { cartas: jogador.cartas }); // Envia um evento para o jogador escolher a carta a perder
-
-    if (jogador.cartas.length === 0) {
-      // Jogador eliminado, pode implementar lógica adicional aqui (ex: remover da sala, etc.)
-      console.log(`${jogador.nome} foi eliminado!`);
-    }
   }
 }
 
@@ -74,6 +70,7 @@ function iniciarJanelaReacao(sala) {
 }
 
 function iniciarJanelaReacaoEscolherCarta(sala) {
+  sala.timerReacao = null;
   sala.timerReacao = setTimeout(() => {
     // Se o jogador não escolher a carta a tempo, penaliza ele automaticamente (perde a carta mais à direita, por exemplo)
     const jogador = sala.jogadaAtual.alvo;
@@ -81,6 +78,7 @@ function iniciarJanelaReacaoEscolherCarta(sala) {
     finalizarTurno(sala);
   }, 10000); // 10 segundos para escolher a carta a perder
 }
+
 
 function perderCartaAutomatico(jogador) {
   jogador.cartas.pop();
@@ -102,23 +100,66 @@ function resolverJogada(sala) {
   }
 
   // Agora sim resolve de verdade
-  aplicarEfeitoJogada(jogada);
+  if(!jogada.bloqueada && !jogada.contestada) {
+    aplicarEfeitoJogada(jogada);  
+  }
+  
 
   finalizarTurno(sala);
 }
 
 function resolverContestacao(sala) {
   const jogada = sala.jogadaAtual;
+  const jogador = jogada.jogador;
 
-  const temCarta = verificarCarta(jogada.jogador, jogada.tipo);
+  let temCarta;
 
-  if (temCarta) {
-    // contestador perde carta
-    perderCarta(jogada.contestador);
-  } else {
-    // jogador mentiu
-    perderCarta(jogada.jogador);
-    jogada.cancelada = true;
+  if(!jogada) {
+    console.error('Jogada atual não encontrada ou indefinida em resolverContestacao');
+    return;
+  }
+
+  if(jogada.bloqueada == true && jogada.contestada == true) {
+    // se foi bloqueada e contestada, o bloqueio tem prioridade, ou seja, o jogador que tentou bloquear perde a carta, e a jogada é cancelada (não tem efeito)
+    const contestador = jogada.contestador;
+    const bloqueador = jogada.bloqueador;
+
+    const tipoJogada = jogada.tipo;
+
+
+    switch (tipoJogada) {
+      case 'ajuda':
+        // bloqueador declarou ter duque
+        temCarta = verificarCarta(bloqueador, 'duque');
+        break;
+      case 'capitao':
+        // bloqueador declarou ter embaixador ou capitao
+        temCarta = verificarCarta(bloqueador, 'embaixador') || verificarCarta(bloqueador, 'capitao');
+        break;
+      case 'assassino':
+        // bloqueador declarou ter condessa
+        temCarta = verificarCarta(bloqueador, 'condessa');
+        break;
+    }
+
+    if(temCarta) {
+      perderCarta(contestador);
+    }
+    else{
+      perderCarta(bloqueador);
+    }
+
+  } else{
+    temCarta = verificarCarta(jogador, jogada.tipo);
+
+    if (temCarta) {
+      // contestador perde carta
+      perderCarta(jogada.contestador);
+    } else {
+      // jogador mentiu
+      perderCarta(jogada.jogador);
+      jogada.cancelada = true;
+    }
   }
 
   finalizarTurno(sala);
@@ -236,11 +277,11 @@ io.on('connection', (socket) => {
       enviarTurnoJogador(sala); // Envia o turno para os jogadores
     });
 
-    socket.on('jogada', (salaId, jogada, alvo) => {
-    
-
-      const sala = salas.get(salaId);
+    socket.on('jogada', (jogada, alvo) => {
       const jogador = jogadores.get(socket.id);
+
+      const sala = salas.get(jogador.sala);
+      
       const alvoJogador = jogadores.get(alvo);
 
       if (!sala) return;
@@ -266,8 +307,15 @@ io.on('connection', (socket) => {
 
       const jogador = jogadores.get(socket.id);
 
+      if(!jogador) {
+        console.error('Jogador não encontrado para o socket:', socket.id);
+        return;
+      }
       const sala = salas.get(jogador.sala);
-
+      if (!sala) {
+        console.error('Sala não encontrada para o jogador:', jogador.nome);
+        return;
+      }
       clearTimeout(sala.timerReacao); // Limpa o timer de reação para escolher carta
 
       // Remove a carta selecionada do jogador
@@ -278,6 +326,11 @@ io.on('connection', (socket) => {
       } else {
         console.warn(`Carta ${carta} não encontrada para o jogador ${jogador.nome}`);
       } 
+
+      if (jogador.cartas.length === 0) {
+        // Jogador eliminado, pode implementar lógica adicional aqui (ex: remover da sala, etc.)
+        console.log(`${jogador.nome} foi eliminado!`);
+      }
       
       resolverJogada(sala);
 
@@ -294,6 +347,8 @@ io.on('connection', (socket) => {
 
       clearTimeout(sala.timerReacao);
 
+      iniciarJanelaReacao(sala);
+
       io.to(sala.id).emit(
         'mostrar-jogada-bloqueada',
         sala.jogadaAtual.tipo,
@@ -301,7 +356,7 @@ io.on('connection', (socket) => {
         sala.jogadaAtual.bloqueador
       );
 
-      finalizarTurno(sala);
+      //finalizarTurno(sala);
     });
 
     socket.on('jogada-contestada', (salaId) => {
@@ -342,9 +397,10 @@ io.on('connection', (socket) => {
         } else {
             console.log(`Atualizando sala ${sala.id}: ${sala.jogadores.length} jogadores restantes`);
             if(sala.pagina === 'lobby') {
+              //TODO ajeitar essa emissao de sala, usar só os dados esseciais pipipi popopo
               io.to(sala.id).emit("atualizar-sala-Lobby", sala);
             } else if(sala.pagina === 'partida') {
-              io.to(sala.id).emit("atualizar-sala-Partida", sala);
+              io.to(sala.id).emit("atualizar-sala-Partida", sala.jogadores);
             }
         }
       }
