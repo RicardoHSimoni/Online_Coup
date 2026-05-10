@@ -44,7 +44,7 @@ export function atualizarPartidaPage(socket, jogadores) {
 
 }
 
-export function selecionarJogadorAlvo(socket, jogadores) {
+export function selecionarJogadorAlvo(socket, jogadoresSala) {
     return new Promise((resolve) => {
 
         const modal = document.getElementById("modal-alvo");
@@ -53,7 +53,7 @@ export function selecionarJogadorAlvo(socket, jogadores) {
         // limpa lista anterior
         lista.innerHTML = "";
 
-        const jogadores = jogadores.filter(j => j.id !== socket.id);
+        const jogadores = jogadoresSala.filter(j => j.id !== socket.id);
 
         jogadores.forEach(jogador => {
             const btn = document.createElement("button");
