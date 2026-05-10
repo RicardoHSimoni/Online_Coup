@@ -7,9 +7,9 @@ const jogadasBloqueaveis = ['ajuda', 'capitao', 'assassino'];
 
 const jogadasContestaveis = ['duque', 'capitao', 'assassino', 'condessa', 'embaixador'];
 
-export function atualizarPartidaPage(socket, sala) {
+export function atualizarPartidaPage(socket, jogadores) {
 
-    const listaJogadores = sala.jogadores.map((jogador) => jogador.nome);
+    const listaJogadores = jogadores.map((jogador) => jogador.nome);
     const container = document.getElementById('containerJogadoresPartida');
     container.innerHTML = ''; // Limpa a lista atual
     listaJogadores.forEach((jogador) => {
@@ -19,24 +19,24 @@ export function atualizarPartidaPage(socket, sala) {
         container.appendChild(div);
     });
 
-    const jogador = sala.jogadores.find((jogador) => jogador.id === socket.id);
+    const jogador = jogadores.find((jogador) => jogador.id === socket.id);
     if (!jogador) {
         console.error('Jogador não encontrado');
         return;
     }
     const card1 = document.getElementById('card1');
     const card2 = document.getElementById('card2');
-    if (Array.isArray(jogador.cartas) && jogador.cartas.length >= 2) {
-        card1.textContent = jogador.cartas[0];
-        card2.textContent = jogador.cartas[1];
-    } else {
-        card1.textContent = '';
-        card2.textContent = '';
-        console.warn('Cartas do jogador estão ausentes ou incompletas.');
-    }
+    
+    
+    card1.textContent = jogador.cartas[0] || '';
+    card2.textContent = jogador.cartas[1] || '';
 
     const statusEl = document.getElementById("status");
     let souMeuTurno = false;
+
+    const moedas =  document.getElementById("moedas");
+    moedas.textContent = `${jogador.moedas}`;
+    
 
     statusEl.textContent = "Aguardando turno...";
 
@@ -44,7 +44,7 @@ export function atualizarPartidaPage(socket, sala) {
 
 }
 
-export function selecionarJogadorAlvo(socket, sala) {
+export function selecionarJogadorAlvo(socket, jogadoresSala) {
     return new Promise((resolve) => {
 
         const modal = document.getElementById("modal-alvo");
@@ -53,7 +53,7 @@ export function selecionarJogadorAlvo(socket, sala) {
         // limpa lista anterior
         lista.innerHTML = "";
 
-        const jogadores = sala.jogadores.filter(j => j.id !== socket.id);
+        const jogadores = jogadoresSala.filter(j => j.id !== socket.id);
 
         jogadores.forEach(jogador => {
             const btn = document.createElement("button");
@@ -70,6 +70,33 @@ export function selecionarJogadorAlvo(socket, sala) {
 
         abrirModalAlvo();
     });
+}
+
+export function selecionarCartaPerder(socket, cartas) {
+    return new Promise((resolve) => {
+
+        const modal = document.getElementById("modal-escolher-carta");
+        const lista = document.getElementById("lista-cartas-perder");
+
+        // limpa lista anterior
+        lista.innerHTML = "";
+
+        cartas.forEach(carta => {
+            const btn = document.createElement("button");
+            btn.classList.add("carta-perder-btn");
+            btn.textContent = carta;
+
+            btn.onclick = () => {
+                fecharModalEscolherCarta();
+                resolve(carta);
+            };
+
+            lista.appendChild(btn);
+        });
+
+        abrirModalEscolherCarta();
+    });
+
 }
 
 export function selecionarJogada(moedas) {
@@ -93,24 +120,33 @@ export function jogadaSelecionada() {
     desativarSidebar(); // Desativa a sidebar após a seleção da jogada
 }
 
-export function mostrarJogada(jogada, jogador, alvo) {
+export function mostrarJogada(jogada, jogador, alvo, oMesmo) {
     const modalText = document.getElementById("modal-text");
     const botaoBloquear = document.getElementById("bloquear");
     const botaoContestar = document.getElementById("contestar");
 
     limparAcoesModal();
 
+    let mensagem = "";
+
+    if (oMesmo) {
+        mensagem = `Você usou ${jogada}`;
+    } else {
+        mensagem = `${jogador.nome} usou ${jogada}`;
+    }
+
     if (alvo) {
-        modalText.textContent = `${jogador.nome} fez a jogada: ${jogada} contra ${alvo.nome}`;
+        mensagem += oMesmo 
+          ? ` em ${alvo.nome}`
+          : ` em você`; // opcional: inverter perspectiva
     }
-    else {
-        modalText.textContent = `${jogador.nome} fez a jogada: ${jogada}`;
-    }
+
+    modalText.textContent = mensagem;
 
     const podeBloquear = jogadasBloqueaveis.includes(jogada);
     const podeContestar = jogadasContestaveis.includes(jogada);
 
-    if (podeBloquear) {
+    if (podeBloquear && !oMesmo) {
         botaoBloquear.classList.remove("hidden");
         botaoBloquear.onclick = () => {
             document.dispatchEvent(new CustomEvent('jogada-bloquear', {
@@ -121,7 +157,7 @@ export function mostrarJogada(jogada, jogador, alvo) {
         };
     }
 
-    if (podeContestar) {
+    if (podeContestar && !oMesmo) {
         botaoContestar.classList.remove("hidden");
         botaoContestar.onclick = () => {
             document.dispatchEvent(new CustomEvent('jogada-contestar', {
@@ -152,6 +188,17 @@ function limparAcoesModal() {
 export function mostrarJogadaBloqueada(jogada, jogador, bloqueador) {
     const modalText = document.getElementById("modal-text");
     modalText.textContent = `${jogador.nome} tentou ${jogada}, mas foi bloqueado por ${bloqueador.nome}!`;
+
+    const botaoContestar = document.getElementById("contestar");
+    botaoContestar.classList.remove("hidden");  
+    botaoContestar.onclick = () => {
+        document.dispatchEvent(new CustomEvent('jogada-contestar', {
+            detail: jogador.sala
+        }));
+        fecharModal();
+        limparAcoesModal();
+    };
+
     abrirModal();
 }
 
@@ -175,6 +222,14 @@ function abrirModalAlvo() {
 
 function fecharModalAlvo() {
     document.getElementById("modal-alvo").classList.add("hidden");
+}
+
+function abrirModalEscolherCarta() {
+    document.getElementById("modal-escolher-carta").classList.remove("hidden");
+}
+
+function fecharModalEscolherCarta() {
+    document.getElementById("modal-escolher-carta").classList.add("hidden");
 }
 
 

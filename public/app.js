@@ -1,7 +1,8 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo, selecionarCartaPerder } from "./js/ui/partida.js";
 
+const jogadasDirecionadas = ['capitao', 'assassino', 'golpe']; // Exemplo de jogadas que precisam de alvo
 
 const socket = io(); // Conexão global única
 
@@ -11,13 +12,9 @@ function mostrar(tela) {
   document.getElementById(tela).style.display = 'block';
 }
 
-
-
 document.addEventListener('DOMContentLoaded', () => {
     inicializarMainPage(socket); // Inicializa a tela principal
 });
-
-
 
 socket.on('sala-criada', (salaId) => {
     mostrar('lobbyPage'); // Muda para a tela de lobby
@@ -46,28 +43,35 @@ socket.on('atualizarListaJogadores', (lista) => {
 
 socket.on('partidaConfigurada', (sala) => {
   mostrar('partidaPage'); // Muda para a tela de partida
-  atualizarPartidaPage(socket, sala); // Inicializa a tela de partida
+  atualizarPartidaPage(socket, sala.jogadores); // Inicializa a tela de partida
   // O turno é iniciado automaticamente pelo servidor
 });
      
-socket.on('seu-turno', async (sala) => {
-  let moedas = sala.jogadores.find(jogador => jogador.id === socket.id)?.moedas || 0; // Obtém as moedas do jogador atual
+socket.on('seu-turno', async (moedas, jogadores) => {
+  // const moedas = sala.jogadores.find(jogador => jogador.id === socket.id)?.moedas || 0; // Obtém as moedas do jogador atual
   const jogada = await selecionarJogada(moedas);
   //ToDo: Validar a jogada, atualizar o estado do jogo, etc.
   jogadaSelecionada();
 
   let alvo = null;
 
-  if (['capitao', 'assassino', 'golpe'].includes(jogada)) {
-    alvo = await selecionarJogadorAlvo(socket, sala);
+  if (jogadasDirecionadas.includes(jogada)) {
+    alvo = await selecionarJogadorAlvo(socket, jogadores);
   }
 
-  socket.emit('jogada', sala.id, jogada, alvo?.id); // Emite a jogada selecionada para o servidor
+  socket.emit('jogada', jogada, alvo?.id); // Emite a jogada selecionada para o servidor
 });
 
+socket.on('escolher-carta-perder', async (dados) => {
+  // Implementar lógica para mostrar a janela de escolha de carta a perder
+  const carta = await selecionarCartaPerder(socket, dados.cartas);
   
-socket.on('mostrar-jogada', (jogadaAtual) => {
-  mostrarJogada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.alvo);
+  socket.emit('carta-selecionada', carta);
+});
+
+socket.on('mostrar-jogada', (jogada, jogador, alvo) => {
+  const oMesmo = jogador.id === socket.id;
+  mostrarJogada(jogada, jogador, alvo, oMesmo);
 });
 
 document.addEventListener('jogada-bloquear', (event) => {
@@ -80,23 +84,22 @@ document.addEventListener('jogada-contestar', (event) => {
   socket.emit('jogada-contestada', salaId);
 });
 
-socket.on('mostrar-jogada-bloqueada', (jogadaAtual) => {
+socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador) => {
   // Implementar lógica para mostrar que a jogada foi bloqueada, quem bloqueou, etc.
-  mostrarJogadaBloqueada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.bloqueador);
+  mostrarJogadaBloqueada(jogada, jogador, bloqueador);
 });
 
-socket.on('mostrar-jogada-contestada', (jogadaAtual) => {
+socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
   // Implementar lógica para mostrar que a jogada foi contestada, quem contestou, etc.
-  mostrarJogadaContestada(jogadaAtual.tipo, jogadaAtual.jogador, jogadaAtual.contestador);
+  mostrarJogadaContestada(jogada, jogador, contestador);
 });
   
-
 
 socket.on('atualizar-sala-Lobby', (sala) => {
   atualizarListaJogadoresLobby(sala.jogadores); // Atualiza a lista de jogadores na tela do lobby
 });
 
-socket.on('atualizar-sala-Partida', (sala) => {
+socket.on('atualizar-sala-Partida', (jogadores) => {
   // Implementar lógica para atualizar a interface da partida com os dados da sala atualizada
-  atualizarListaJogadoresPartida(sala.jogadores); 
+  atualizarPartidaPage(socket, jogadores); 
 });
