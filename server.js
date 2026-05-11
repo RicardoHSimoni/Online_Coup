@@ -97,8 +97,7 @@ function resolverJogada(sala) {
   switch (sala.estado) {
     case 'AGUARDANDO_REACAO':
       // Se o tempo de reação acabou e ninguém bloqueou ou contestou, aplica o efeito da jogada normalmente
-      aplicarEfeitoJogada(jogada);
-      finalizarTurno(sala);
+      aplicarEfeitoJogada(sala);
       break;
     case 'CARTA_PERDIDA':
       // Lógica para lidar com a carta perdida
@@ -183,30 +182,36 @@ function verificarCarta(jogador, tipo) {
   return jogador.cartas.includes(tipo);
 }
 
-function aplicarEfeitoJogada(jogada) {
+function aplicarEfeitoJogada(sala) {
+  const jogada = sala.jogadaAtual;
   const jogador = jogada.jogador;
   const alvo = jogada.alvo;
 
   switch (jogada.tipo) {
     case 'renda':
       jogador.moedas += 1;
+      finalizarTurno(sala);
       break;
 
     case 'ajuda':
       jogador.moedas += 2;
+      finalizarTurno(sala);
       break;
 
     case 'duque':
       jogador.moedas += 3;
+      finalizarTurno(sala);
       break;
 
     case 'capitao':
       jogador.moedas += 2;
       alvo.moedas -= 2;
+      finalizarTurno(sala);
       break;  
 
     case 'assassino':
       jogador.moedas -= 3;
+      perderCarta(alvo);
       console.log('Jogada é direcionada, aplicando efeito e fazendo alvo perder carta');
       break;
 
@@ -216,6 +221,7 @@ function aplicarEfeitoJogada(jogada) {
 
     case 'golpe':
       jogador.moedas -= 7;
+      perderCarta(alvo);
       break;
 
   }
