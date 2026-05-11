@@ -84,6 +84,11 @@ document.addEventListener('jogada-contestar', (event) => {
   socket.emit('jogada-contestada', salaId);
 });
 
+document.addEventListener('bloqueio-contestar', (event) => {
+  const salaId  = event.detail;
+  socket.emit('bloqueio-contestado', salaId);
+});
+
 socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador) => {
   // Implementar lógica para mostrar que a jogada foi bloqueada, quem bloqueou, etc.
   mostrarJogadaBloqueada(jogada, jogador, bloqueador);

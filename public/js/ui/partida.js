@@ -192,7 +192,7 @@ export function mostrarJogadaBloqueada(jogada, jogador, bloqueador) {
     const botaoContestar = document.getElementById("contestar");
     botaoContestar.classList.remove("hidden");  
     botaoContestar.onclick = () => {
-        document.dispatchEvent(new CustomEvent('jogada-contestar', {
+        document.dispatchEvent(new CustomEvent('bloqueio-contestar', {
             detail: jogador.sala
         }));
         fecharModal();
