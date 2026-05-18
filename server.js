@@ -74,6 +74,19 @@ function iniciarJanelaReacaoEscolherCarta(sala, jogador) {
   }, 10000); // 10 segundos para escolher a carta a perder
 }
 
+function iniciarJanelaTrocarCartas(sala, jogador) {
+  sala.timerReacao = setTimeout(() => {
+    const resolve = jogador.trocarCartasResolver;
+    jogador.trocarCartasResolver = null;
+    jogador.trocarCartasPromise = null;
+    if (jogador.cartas.length >= 2) {
+      resolve(jogador.cartas.slice(0, 2));
+    } else {
+      resolve(jogador.cartas);
+    }
+  }, 10000); // 10 segundos para trocar cartas
+}
+
 async function perderCarta(jogador) {
   if (!jogador || jogador.cartas.length === 0) {
     return;
@@ -89,6 +102,28 @@ async function perderCarta(jogador) {
     jogador.perdaCartaPromise = true;
     iniciarJanelaReacaoEscolherCarta(sala, jogador); // Inicia a janela de reação para escolher a carta a perder
     io.to(jogador.id).emit('escolher-carta-perder', { cartas: jogador.cartas }); // Envia um evento para o jogador escolher a carta a perder
+  });
+}
+
+async function trocarCartas(jogador) {
+  if (!jogador || jogador.cartas.length === 0) {
+    return;
+  }
+
+  const sala = salas.get(jogador.sala);
+  if (!sala || !sala.baralho) {
+    return;
+  }
+
+  const maxSelecionar = Math.min(2, jogador.cartas.length);
+  const cartasNovas = sala.baralho.cartas.splice(0, 2);
+  const cartasParaEscolha = [...jogador.cartas, ...cartasNovas];
+
+  return new Promise((resolve) => {
+    jogador.trocarCartasResolver = resolve;
+    jogador.trocarCartasPromise = true;
+    iniciarJanelaTrocarCartas(sala, jogador);
+    io.to(jogador.id).emit('trocarCartas', { cartas: cartasParaEscolha, maxSelecionar });
   });
 }
 
@@ -251,7 +286,8 @@ async function aplicarEfeitoJogada(sala) {
       break;
 
     case 'embaixador':
-      // TODO: lógica para trocar cartas
+      await trocarCartas(jogador);
+      finalizarTurno(sala);
       break;
 
     case 'golpe':
@@ -418,6 +454,37 @@ io.on('connection', (socket) => {
 
       if (resolver) {
         resolver();
+      }
+    });
+
+    socket.on('cartas-trocadas', async (cartasEscolhidas) => {
+      const jogador = jogadores.get(socket.id);
+      const sala = salas.get(jogador?.sala);
+
+      if (!jogador) {
+        console.error('Jogador não encontrado para o socket:', socket.id);
+        return;
+      }
+
+      if (!sala) {
+        console.error('Sala não encontrada para o jogador:', jogador.nome);
+        return;
+      }
+
+      if (!jogador.trocarCartasResolver) {
+        console.warn(`Troca de cartas recebida sem solicitação pendente para ${jogador.nome}`);
+        return;
+      }
+
+      clearTimeout(sala.timerReacao);
+      jogador.cartas = Array.isArray(cartasEscolhidas) ? cartasEscolhidas.slice(0, 2) : jogador.cartas.slice(0, 2);
+
+      const resolver = jogador.trocarCartasResolver;
+      jogador.trocarCartasResolver = null;
+      jogador.trocarCartasPromise = null;
+
+      if (resolver) {
+        resolver(jogador.cartas);
       }
     });
 
