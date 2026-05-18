@@ -61,14 +61,14 @@ export function selecionarJogadorAlvo(socket, jogadoresSala) {
             btn.textContent = jogador.nome;
 
             btn.onclick = () => {
-                fecharModalAlvo();
+                alterarModal("modal-alvo", false);
                 resolve(jogador);
             };
 
             lista.appendChild(btn);
         });
 
-        abrirModalAlvo();
+        alterarModal("modal-alvo", true);
     });
 }
 
@@ -87,14 +87,14 @@ export function selecionarCartaPerder(socket, cartas) {
             btn.textContent = carta;
 
             btn.onclick = () => {
-                fecharModalEscolherCarta();
+                alterarModal("modal-escolher-carta", false);
                 resolve(carta);
             };
 
             lista.appendChild(btn);
         });
 
-        abrirModalEscolherCarta();
+        alterarModal("modal-escolher-carta", true);
     });
 
 }
@@ -152,7 +152,7 @@ export function mostrarJogada(jogada, jogador, alvo, oMesmo) {
             document.dispatchEvent(new CustomEvent('jogada-bloquear', {
                 detail: jogador.sala
             }));
-            fecharModal();
+            alterarModal("modal", false);
             limparAcoesModal();
         };
     }
@@ -163,18 +163,46 @@ export function mostrarJogada(jogada, jogador, alvo, oMesmo) {
             document.dispatchEvent(new CustomEvent('jogada-contestar', {
                 detail: jogador.sala
             }));
-            fecharModal();
+            alterarModal("modal", false);
             limparAcoesModal();
         };
     }
 
-    abrirModal();
+    alterarModal("modal", true);
     setTimeout(() => {
-        fecharModal();
+        alterarModal("modal", false);
         limparAcoesModal();
     }, MODAL_TIMEOUT_MS);
 }
 
+export function mostrarTelaVitoria(nomeJogador) {
+    console.log(`Mostrando tela de vitória para ${nomeJogador}`);
+    alterarModal("modal", false);
+    alterarModal("modal-alvo", false);
+    alterarModal("modal-escolher-carta", false);
+    limparAcoesModal();
+
+    const modal = document.getElementById("modalFinalPartida");
+    const modalText = document.getElementById("modalFinalPartida-text");
+    modalText.textContent = `Jogador ${nomeJogador} venceu!`;
+
+    modal.style.maxWidth = "90vw";
+    modal.style.width = "90vw";
+    modal.style.height = "auto";
+
+    const botaoVoltar = document.getElementById("voltar");
+    botaoVoltar.classList.remove("hidden");
+    botaoVoltar.onclick = () => {
+        document.dispatchEvent(new CustomEvent('voltar-lobby'));
+        alterarModal("modalFinalPartida", false);
+        modal.style.width = "";
+        modal.style.maxWidth = "";
+        modal.style.height = "";
+        botaoVoltar.classList.add("hidden");
+    };
+
+    alterarModal("modalFinalPartida", true);
+}
 
 function limparAcoesModal() {
     const botaoBloquear = document.getElementById("bloquear");
@@ -187,7 +215,7 @@ function limparAcoesModal() {
 
 export function mostrarJogadaBloqueada(jogada, jogador, bloqueador) {
     const modalText = document.getElementById("modal-text");
-    modalText.textContent = `${jogador.nome} tentou ${jogada}, mas foi bloqueado por ${bloqueador.nome}!`;
+    modalText.textContent = `${jogador} tentou ${jogada}, mas foi bloqueado por ${bloqueador}!`;
 
     const botaoContestar = document.getElementById("contestar");
     botaoContestar.classList.remove("hidden");  
@@ -195,41 +223,23 @@ export function mostrarJogadaBloqueada(jogada, jogador, bloqueador) {
         document.dispatchEvent(new CustomEvent('bloqueio-contestar', {
             detail: jogador.sala
         }));
-        fecharModal();
+        alterarModal("modal", false);
         limparAcoesModal();
     };
 
-    abrirModal();
+    alterarModal("modal", true);
 }
 
 export function mostrarJogadaContestada(jogada, jogador, contestador) {
     const modalText = document.getElementById("modal-text");
     modalText.textContent = `${jogador.nome} tentou ${jogada}, mas foi contestado por ${contestador.nome}!`;
-    abrirModal();
+    alterarModal("modal", true);
 }
 
-function abrirModal() {
-  document.getElementById("modal").classList.remove("hidden");
-}
-
-function fecharModal() {
-  document.getElementById("modal").classList.add("hidden");
-}
-
-function abrirModalAlvo() {
-    document.getElementById("modal-alvo").classList.remove("hidden");
-}
-
-function fecharModalAlvo() {
-    document.getElementById("modal-alvo").classList.add("hidden");
-}
-
-function abrirModalEscolherCarta() {
-    document.getElementById("modal-escolher-carta").classList.remove("hidden");
-}
-
-function fecharModalEscolherCarta() {
-    document.getElementById("modal-escolher-carta").classList.add("hidden");
+function alterarModal(modalId, abrir) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.classList.toggle("hidden", !abrir);
 }
 
 
