@@ -325,7 +325,7 @@ io.on('connection', (socket) => {
 
         jogador.sala = sala.id; // Define a sala do jogador
         sala.jogadores.push(jogador); // Adiciona o jogador à sala
-        sala.vip = jogador; // Define o jogador como VIP
+        sala.vip = socket.id; // Define o jogador como VIP
         sala.numeroJogadores = 1; // Define o número de jogadores como 1
         //salasAtivas.push(sala); // Adiciona a sala à lista de salas ativas
         socket.emit('sala-criada', sala.id); // Envia a sala criada de volta para o cliente
@@ -568,13 +568,16 @@ io.on('connection', (socket) => {
 
       if (sala) {
         console.log(`Removendo jogador da sala ${sala.id}`);
-        sala.jogadores = sala.jogadores.filter(j => j.id !== socket.id);
+        sala.jogadores = sala.jogadores.filter(j => j.id !== socket.id)
 
         if (sala.jogadores.length === 0) {
             console.log(`Sala ${sala.id} deletada (sem jogadores)`);
             salas.delete(sala.id);
         } else {
             console.log(`Atualizando sala ${sala.id}: ${sala.jogadores.length} jogadores restantes`);
+            if(sala.vip === socket.id) {
+                sala.vip = sala.jogadores[0].id; // Se o VIP saiu, o próximo jogador se torna VIP
+            }
             if(sala.pagina === 'lobby') {
               //TODO ajeitar essa emissao de sala, usar só os dados esseciais pipipi popopo
               io.to(sala.id).emit("atualizar-sala-Lobby", sala);
