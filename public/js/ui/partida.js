@@ -99,6 +99,42 @@ export function selecionarCartaPerder(socket, cartas) {
 
 }
 
+export function selecionarCartasTrocar(socket, cartas, maxSelecionar = 2) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("modal-trocar-cartas");
+        const lista = document.getElementById("lista-cartas-trocar");
+        const selecionadas = new Set();
+
+        lista.innerHTML = "";
+
+        cartas.forEach((carta, index) => {
+            const btn = document.createElement("button");
+            btn.classList.add("carta-trocar-btn");
+            btn.textContent = carta;
+
+            btn.onclick = () => {
+                if (selecionadas.has(index)) {
+                    selecionadas.delete(index);
+                    btn.classList.remove("selected");
+                } else if (selecionadas.size < maxSelecionar) {
+                    selecionadas.add(index);
+                    btn.classList.add("selected");
+                }
+
+                if (selecionadas.size === maxSelecionar) {
+                    const cartasEscolhidas = Array.from(selecionadas).map(i => cartas[i]);
+                    alterarModal("modal-trocar-cartas", false);
+                    resolve(cartasEscolhidas);
+                }
+            };
+
+            lista.appendChild(btn);
+        });
+
+        alterarModal("modal-trocar-cartas", true);
+    });
+}
+
 export function selecionarJogada(moedas) {
     // ToDo: passar alguns parametros para habilitar apenas as opções de jogada válidas, como moedas, cartas, etc.
     const statusEl = document.getElementById("status");

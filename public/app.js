@@ -1,6 +1,6 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo, selecionarCartaPerder, mostrarTelaVitoria } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo, selecionarCartaPerder, selecionarCartasTrocar, mostrarTelaVitoria } from "./js/ui/partida.js";
 
 const jogadasDirecionadas = ['capitao', 'assassino', 'golpe']; // Exemplo de jogadas que precisam de alvo
 
@@ -67,6 +67,11 @@ socket.on('escolher-carta-perder', async (dados) => {
   const carta = await selecionarCartaPerder(socket, dados.cartas);
   
   socket.emit('carta-selecionada', carta);
+});
+
+socket.on('trocarCartas', async (dados) => {
+  const cartas = await selecionarCartasTrocar(socket, dados.cartas, dados.maxSelecionar);
+  socket.emit('cartas-trocadas', cartas);
 });
 
 socket.on('jogador-venceu', (nomeJogador) => {
