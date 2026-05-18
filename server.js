@@ -56,28 +56,40 @@ function proximoTurno(sala) {
   enviarTurnoJogador(sala);
 }
 
-function perderCarta(jogador) {
-  if (jogador.cartas.length > 0) {
-    const sala = salas.get(jogador.sala);
-    iniciarJanelaReacaoEscolherCarta(sala); // Inicia a janela de reação para escolher a carta a perder
-    io.to(jogador.id).emit('escolher-carta-perder', { cartas: jogador.cartas }); // Envia um evento para o jogador escolher a carta a perder
-  }
-}
-
 function iniciarJanelaReacao(sala) {
   sala.timerReacao = setTimeout(() => {
-    resolverJogada(sala);
+    void resolverJogada(sala);
   }, 3000); // 3 segundos para bloquear/contestar
 }
 
-function iniciarJanelaReacaoEscolherCarta(sala) {
-  sala.timerReacao = null;
+function iniciarJanelaReacaoEscolherCarta(sala, jogador) {
   sala.timerReacao = setTimeout(() => {
-    // Se o jogador não escolher a carta a tempo, penaliza ele automaticamente (perde a carta mais à direita, por exemplo)
-    const jogador = sala.jogadaAtual.alvo;
+    const resolve = jogador.perdaCartaResolver;
+    jogador.perdaCartaResolver = null;
+    jogador.perdaCartaPromise = null;
     perderCartaAutomatico(jogador);
-    finalizarTurno(sala);
+    if (resolve) {
+      resolve();
+    }
   }, 10000); // 10 segundos para escolher a carta a perder
+}
+
+async function perderCarta(jogador) {
+  if (!jogador || jogador.cartas.length === 0) {
+    return;
+  }
+
+  const sala = salas.get(jogador.sala);
+  if (!sala) {
+    return;
+  }
+
+  return new Promise((resolve) => {
+    jogador.perdaCartaResolver = resolve;
+    jogador.perdaCartaPromise = true;
+    iniciarJanelaReacaoEscolherCarta(sala, jogador); // Inicia a janela de reação para escolher a carta a perder
+    io.to(jogador.id).emit('escolher-carta-perder', { cartas: jogador.cartas }); // Envia um evento para o jogador escolher a carta a perder
+  });
 }
 
 
@@ -108,7 +120,7 @@ function verificarVencedor(sala) {
   return null;
 }
 
-function resolverJogada(sala) {
+async function resolverJogada(sala) {
   const jogada = sala.jogadaAtual;
 
   if(!jogada) {
@@ -119,21 +131,21 @@ function resolverJogada(sala) {
   switch (sala.estado) {
     case 'AGUARDANDO_REACAO':
       // Se o tempo de reação acabou e ninguém bloqueou ou contestou, aplica o efeito da jogada normalmente
-      aplicarEfeitoJogada(sala);
+      await aplicarEfeitoJogada(sala);
       break;
     case 'CARTA_PERDIDA':
       // Lógica para lidar com a carta perdida
       finalizarTurno(sala);
       break;
     case 'JOGADA_CONTESTADA':
-      resolverContestacao(sala);
+      await resolverContestacao(sala);
       //contestação -> perder carta -> finalizar turno
       break;
     case 'JOGADA_BLOQUEADA':
       finalizarTurno(sala);
       break;
     case 'BLOQUEIO_CONTESTADO':
-      resolverBLoqueioContestado(sala);
+      await resolverBLoqueioContestado(sala);
       //contestação -> perder carta -> finalizar turno
       break;
     default:
@@ -143,7 +155,7 @@ function resolverJogada(sala) {
 
   
 
-function resolverBLoqueioContestado(sala) {
+async function resolverBLoqueioContestado(sala) {
   const jogada = sala.jogadaAtual;
 
   const bloqueador = jogadores.get(jogada.bloqueador);
@@ -151,6 +163,7 @@ function resolverBLoqueioContestado(sala) {
 
   const tipoJogada = jogada.tipo;
 
+  let temCarta = false;
 
   switch (tipoJogada) {
     case 'ajuda':
@@ -162,50 +175,48 @@ function resolverBLoqueioContestado(sala) {
       temCarta = verificarCarta(bloqueador, 'embaixador') || verificarCarta(bloqueador, 'capitao');
       break;
     case 'assassino':
-       // bloqueador declarou ter condessa
+      // bloqueador declarou ter condessa
       temCarta = verificarCarta(bloqueador, 'condessa');
       break;
   }
 
-  if(temCarta) {
-    perderCarta(contestador);
-  }
-  else{
-    perderCarta(bloqueador);
-    aplicarEfeitoJogada(jogada); // Aplica o efeito da jogada normalmente, já que o bloqueador não tinha a carta necessária
+  if (temCarta) {
+    await perderCarta(contestador);
+    finalizarTurno(sala);
+  } else {
+    await perderCarta(bloqueador);
+    await aplicarEfeitoJogada(sala); // Aplica o efeito da jogada normalmente, já que o bloqueador não tinha a carta necessária
   }
 }
 
-function resolverContestacao(sala) {
+async function resolverContestacao(sala) {
   const jogada = sala.jogadaAtual;
   const jogador = jogadores.get(jogada.jogador);
   const contestador = jogadores.get(jogada.contestador);
-
-  let temCarta;
 
   if(!jogada) {
     console.error('Jogada atual não encontrada ou indefinida em resolverContestacao');
     return;
   }
 
-  temCarta = verificarCarta(jogador, jogada.tipo);
+  const temCarta = verificarCarta(jogador, jogada.tipo);
 
   if (temCarta) {
     // contestador perde carta
-    perderCarta(contestador);
-    aplicarEfeitoJogada(jogada); // Aplica o efeito da jogada normalmente, já que o jogador tinha a carta necessária
+    await perderCarta(contestador);
+    await aplicarEfeitoJogada(sala); // Aplica o efeito da jogada normalmente, já que o jogador tinha a carta necessária
   } else {
     // jogador mentiu
-    perderCarta(jogador);
+    await perderCarta(jogador);
+    finalizarTurno(sala);
   }
-  
 }
 
 function verificarCarta(jogador, tipo) {
   return jogador.cartas.includes(tipo);
 }
 
-function aplicarEfeitoJogada(sala) {
+async function aplicarEfeitoJogada(sala) {
   const jogada = sala.jogadaAtual;
   const jogador = jogadores.get(jogada.jogador);
   const alvo = jogadores.get(jogada.alvo);
@@ -234,8 +245,9 @@ function aplicarEfeitoJogada(sala) {
 
     case 'assassino':
       jogador.moedas -= 3;
-      perderCarta(alvo);
+      await perderCarta(alvo);
       console.log('Jogada é direcionada, aplicando efeito e fazendo alvo perder carta');
+      finalizarTurno(sala);
       break;
 
     case 'embaixador':
@@ -244,7 +256,8 @@ function aplicarEfeitoJogada(sala) {
 
     case 'golpe':
       jogador.moedas -= 7;
-      perderCarta(alvo);
+      await perderCarta(alvo);
+      finalizarTurno(sala);
       break;
 
   }
@@ -357,15 +370,12 @@ io.on('connection', (socket) => {
       iniciarJanelaReacao(sala);
     }); 
 
-    socket.on('carta-selecionada', (carta) => {
+    socket.on('carta-selecionada', async (carta) => {
 
       const jogador = jogadores.get(socket.id);
+      const sala = salas.get(jogador?.sala);
 
-      const sala = salas.get(jogador.sala);
-
-      sala.estado = 'CARTA_PERDIDA'; 
-
-      if(!jogador) {
+      if (!jogador) {
         console.error('Jogador não encontrado para o socket:', socket.id);
         return;
       }
@@ -374,28 +384,41 @@ io.on('connection', (socket) => {
         console.error('Sala não encontrada para o jogador:', jogador.nome);
         return;
       }
+
+      if (!jogador.perdaCartaResolver) {
+        console.warn(`Carta selecionada sem perda pendente para ${jogador.nome}`);
+        return;
+      }
+
       clearTimeout(sala.timerReacao); // Limpa o timer de reação para escolher carta
 
-      // Remove a carta selecionada do jogador
       const index = jogador.cartas.indexOf(carta);
       if (index > -1) {
         jogador.cartas.splice(index, 1);
         console.log(`${jogador.nome} perdeu a carta: ${carta}`);
       } else {
         console.warn(`Carta ${carta} não encontrada para o jogador ${jogador.nome}`);
-      } 
+      }
 
       if (jogador.cartas.length === 0) {
-        // Jogador eliminado, pode implementar lógica adicional aqui (ex: remover da sala, etc.)
-        jogador.estaVivo = false; // Marca o jogador como eliminado
+        jogador.estaVivo = false;
         console.log(`${jogador.nome} foi eliminado!`);
         if (verificarVencedor(sala)) {
+          const resolver = jogador.perdaCartaResolver;
+          jogador.perdaCartaResolver = null;
+          jogador.perdaCartaPromise = null;
+          if (resolver) resolver();
           return;
         }
       }
-      
-      resolverJogada(sala);
 
+      const resolver = jogador.perdaCartaResolver;
+      jogador.perdaCartaResolver = null;
+      jogador.perdaCartaPromise = null;
+
+      if (resolver) {
+        resolver();
+      }
     });
 
     socket.on('jogada-bloqueada', (salaId) => {
@@ -423,25 +446,29 @@ io.on('connection', (socket) => {
       //finalizarTurno(sala);
     });
 
-    socket.on('jogada-contestada', (salaId) => {
+    socket.on('jogada-contestada', async (salaId) => {
       const sala = salas.get(salaId);
       const contestador = jogadores.get(socket.id);
 
-      if (sala.estado !== 'AGUARDANDO_REACAO') return;
+      if (!sala || sala.estado !== 'AGUARDANDO_REACAO') return;
 
-      sala.estado = 'JOGADA_CONTESTADA';  
-
+      sala.estado = 'JOGADA_CONTESTADA';
       sala.jogadaAtual.contestada = true;
       sala.jogadaAtual.contestador = contestador.id;
 
       clearTimeout(sala.timerReacao);
 
-      resolverContestacao(sala);
+      await resolverContestacao(sala);
     });
 
-    socket.on('bloqueio-contestado', (salaId) => {
+    socket.on('bloqueio-contestado', async (salaId) => {
       const sala = salas.get(salaId);
       const contestador = jogadores.get(socket.id);
+
+      if (!sala) {
+        console.error('Sala não encontrada para contestar bloqueio:', salaId);
+        return;
+      }
 
       sala.estado = 'BLOQUEIO_CONTESTADO';
 
@@ -449,12 +476,13 @@ io.on('connection', (socket) => {
         console.error('Não há uma jogada bloqueada para contestar nessa sala:', salaId);
         return;
       }
+
       sala.jogadaAtual.contestada = true;
-      sala.jogadaAtual.contestador = contestador.id; 
+      sala.jogadaAtual.contestador = contestador.id;
 
       clearTimeout(sala.timerReacao);
 
-      resolverContestacao(sala);
+      await resolverBLoqueioContestado(sala);
     });
 
 
