@@ -1,6 +1,6 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo, selecionarCartaPerder } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo, selecionarCartaPerder, mostrarTelaVitoria } from "./js/ui/partida.js";
 
 const jogadasDirecionadas = ['capitao', 'assassino', 'golpe']; // Exemplo de jogadas que precisam de alvo
 
@@ -69,6 +69,12 @@ socket.on('escolher-carta-perder', async (dados) => {
   socket.emit('carta-selecionada', carta);
 });
 
+socket.on('jogador-venceu', (nomeJogador) => {
+  console.log(`Jogador ${nomeJogador} venceu a partida!`);
+  // Implementar lógica para mostrar a tela de vitória, quem venceu, etc.
+  mostrarTelaVitoria(nomeJogador);
+});
+
 socket.on('mostrar-jogada', (jogada, jogador, alvo) => {
   const oMesmo = jogador.id === socket.id;
   mostrarJogada(jogada, jogador, alvo, oMesmo);
@@ -87,6 +93,10 @@ document.addEventListener('jogada-contestar', (event) => {
 document.addEventListener('bloqueio-contestar', (event) => {
   const salaId  = event.detail;
   socket.emit('bloqueio-contestado', salaId);
+});
+
+document.addEventListener('voltar-lobby', (event) => {
+  socket.emit('voltar-lobby');
 });
 
 socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador) => {

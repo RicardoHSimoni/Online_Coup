@@ -83,8 +83,30 @@ function iniciarJanelaReacaoEscolherCarta(sala) {
 
 function perderCartaAutomatico(jogador) {
   jogador.cartas.pop();
+  if (jogador.cartas.length === 0) {
+    jogador.estaVivo = false;
+    const sala = salas.get(jogador.sala);
+    if (sala) {
+      verificarVencedor(sala);
+    }
+  }
 }
 
+function verificarVencedor(sala) {
+  if (!sala) return null;
+  const jogadoresVivos = sala.jogadores.filter((j) => j.estaVivo);
+  if (jogadoresVivos.length === 1) {
+    const vencedor = jogadoresVivos[0];
+    sala.estado = 'FIM_DE_JOGO';
+    sala.jogadaAtual = null;
+    sala.turnoAtual = null;
+    sala.jogadores = [];
+    io.to(sala.id).emit('jogador-venceu', vencedor.nome);
+    return vencedor;
+
+  }
+  return null;
+}
 
 function resolverJogada(sala) {
   const jogada = sala.jogadaAtual;
@@ -124,8 +146,8 @@ function resolverJogada(sala) {
 function resolverBLoqueioContestado(sala) {
   const jogada = sala.jogadaAtual;
 
-  const bloqueador = jogada.bloqueador;
-  const contestador = jogada.contestador;
+  const bloqueador = jogadores.get(jogada.bloqueador);
+  const contestador = jogadores.get(jogada.contestador);
 
   const tipoJogada = jogada.tipo;
 
@@ -156,7 +178,8 @@ function resolverBLoqueioContestado(sala) {
 
 function resolverContestacao(sala) {
   const jogada = sala.jogadaAtual;
-  const jogador = jogada.jogador;
+  const jogador = jogadores.get(jogada.jogador);
+  const contestador = jogadores.get(jogada.contestador);
 
   let temCarta;
 
@@ -169,11 +192,11 @@ function resolverContestacao(sala) {
 
   if (temCarta) {
     // contestador perde carta
-    perderCarta(jogada.contestador);
+    perderCarta(contestador);
     aplicarEfeitoJogada(jogada); // Aplica o efeito da jogada normalmente, já que o jogador tinha a carta necessária
   } else {
     // jogador mentiu
-    perderCarta(jogada.jogador);
+    perderCarta(jogador);
   }
   
 }
@@ -184,8 +207,8 @@ function verificarCarta(jogador, tipo) {
 
 function aplicarEfeitoJogada(sala) {
   const jogada = sala.jogadaAtual;
-  const jogador = jogada.jogador;
-  const alvo = jogada.alvo;
+  const jogador = jogadores.get(jogada.jogador);
+  const alvo = jogadores.get(jogada.alvo);
 
   switch (jogada.tipo) {
     case 'renda':
@@ -230,6 +253,10 @@ function aplicarEfeitoJogada(sala) {
 function finalizarTurno(sala) {
   sala.jogadaAtual = null;
   sala.estado = 'PROXIMO_TURNO';
+
+  if (verificarVencedor(sala)) {
+    return;
+  }
 
   proximoTurno(sala);
 }
@@ -283,6 +310,20 @@ io.on('connection', (socket) => {
       const sala = salas.get(salaId);
       socket.emit("dados-sala-Partida", sala);
     });
+
+    socket.on('voltar-lobby', () => {
+      console.log(`Socket ${socket.id} solicitou voltar ao lobby`);
+      const jogador = jogadores.get(socket.id);
+      const sala = salas.get(jogador.sala);
+      sala.jogadores.push(jogador); // Adiciona o jogador de volta à sala
+      if (!sala) {
+        console.error('Sala não encontrada para o jogador:', jogador.nome);
+        return;
+      }
+      io.to(sala.id).emit('atualizar-sala-Lobby', sala); // Atualiza a lista de jogadores para todos os clientes na sala
+      socket.emit('sala-criada', sala.id); // Envia a sala criada de volta para o client  
+
+    });
    
     socket.on('configurarPartida', (salaId) => {
       const sala = salas.get(salaId);
@@ -309,7 +350,7 @@ io.on('connection', (socket) => {
 
       sala.estado = 'AGUARDANDO_REACAO';
 
-      sala.jogadaAtual = new Jogada(jogada, jogador, alvoJogador);
+      sala.jogadaAtual = new Jogada(jogada, jogador.id, alvo);
 
       io.to(sala.id).emit('mostrar-jogada', jogada, jogador, alvoJogador); // Emite um evento para mostrar a jogada realizada
 
@@ -346,7 +387,11 @@ io.on('connection', (socket) => {
 
       if (jogador.cartas.length === 0) {
         // Jogador eliminado, pode implementar lógica adicional aqui (ex: remover da sala, etc.)
+        jogador.estaVivo = false; // Marca o jogador como eliminado
         console.log(`${jogador.nome} foi eliminado!`);
+        if (verificarVencedor(sala)) {
+          return;
+        }
       }
       
       resolverJogada(sala);
@@ -362,7 +407,7 @@ io.on('connection', (socket) => {
       sala.estado = 'JOGADA_BLOQUEADA';
 
       sala.jogadaAtual.bloqueada = true;
-      sala.jogadaAtual.bloqueador = bloqueador;
+      sala.jogadaAtual.bloqueador = bloqueador.id;
 
       clearTimeout(sala.timerReacao);
 
@@ -371,8 +416,8 @@ io.on('connection', (socket) => {
       io.to(sala.id).emit(
         'mostrar-jogada-bloqueada',
         sala.jogadaAtual.tipo,
-        sala.jogadaAtual.jogador,
-        sala.jogadaAtual.bloqueador
+        sala.jogadaAtual.jogador.nome,
+        sala.jogadaAtual.bloqueador.nome
       );
 
       //finalizarTurno(sala);
@@ -387,7 +432,7 @@ io.on('connection', (socket) => {
       sala.estado = 'JOGADA_CONTESTADA';  
 
       sala.jogadaAtual.contestada = true;
-      sala.jogadaAtual.contestador = contestador;
+      sala.jogadaAtual.contestador = contestador.id;
 
       clearTimeout(sala.timerReacao);
 
@@ -405,7 +450,7 @@ io.on('connection', (socket) => {
         return;
       }
       sala.jogadaAtual.contestada = true;
-      sala.jogadaAtual.contestador = contestador; 
+      sala.jogadaAtual.contestador = contestador.id; 
 
       clearTimeout(sala.timerReacao);
 
