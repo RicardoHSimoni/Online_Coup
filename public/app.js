@@ -48,14 +48,17 @@ socket.on('partidaConfigurada', (sala) => {
 });
      
 socket.on('seu-turno', async (moedas, jogadores) => {
-  // const moedas = sala.jogadores.find(jogador => jogador.id === socket.id)?.moedas || 0; // Obtém as moedas do jogador atual
-  const jogada = await selecionarJogada(moedas);
+  const jogada = await selecionarJogada(socket, moedas, jogadores);
   //ToDo: Validar a jogada, atualizar o estado do jogo, etc.
   jogadaSelecionada();
 
   let alvo = null;
 
   if (jogadasDirecionadas.includes(jogada)) {
+    if (jogada === 'capitao') {
+      // Filtra os jogadores que têm moedas para serem roubados
+      jogadores = jogadores.filter(jogador => jogador.id !== socket.id && jogador.moedas >= 2);
+    }
     alvo = await selecionarJogadorAlvo(socket, jogadores);
   }
 
@@ -104,14 +107,16 @@ document.addEventListener('voltar-lobby', (event) => {
   socket.emit('voltar-lobby');
 });
 
-socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador) => {
+socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador, bloqueadorId) => {
   // Implementar lógica para mostrar que a jogada foi bloqueada, quem bloqueou, etc.
-  mostrarJogadaBloqueada(jogada, jogador, bloqueador);
+  const oMesmo = bloqueadorId === socket.id;
+  mostrarJogadaBloqueada(jogada, jogador, bloqueador, oMesmo);
 });
 
 socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
   // Implementar lógica para mostrar que a jogada foi contestada, quem contestou, etc.
-  mostrarJogadaContestada(jogada, jogador, contestador);
+  const oMesmo = jogador.id === socket.id;
+  mostrarJogadaContestada(jogada, jogador, contestador, oMesmo);
 });
   
 

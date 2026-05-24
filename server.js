@@ -59,7 +59,7 @@ function proximoTurno(sala) {
 function iniciarJanelaReacao(sala) {
   sala.timerReacao = setTimeout(() => {
     void resolverJogada(sala);
-  }, 3000); // 3 segundos para bloquear/contestar
+  }, 5000); // 5 segundos para bloquear/contestar
 }
 
 function iniciarJanelaReacaoEscolherCarta(sala, jogador) {
@@ -139,15 +139,21 @@ function perderCartaAutomatico(jogador) {
   }
 }
 
+function zerarSala(sala) {
+  sala.estado = 'FIM_DE_JOGO';
+
+  sala.jogadaAtual = null;
+  sala.turnoAtual = 0;
+  sala.jogadores = [];
+  sala.baralho = null;  
+}
+
 function verificarVencedor(sala) {
   if (!sala) return null;
   const jogadoresVivos = sala.jogadores.filter((j) => j.estaVivo);
   if (jogadoresVivos.length === 1) {
     const vencedor = jogadoresVivos[0];
-    sala.estado = 'FIM_DE_JOGO';
-    sala.jogadaAtual = null;
-    sala.turnoAtual = null;
-    sala.jogadores = [];
+    zerarSala(sala);
     io.to(sala.id).emit('jogador-venceu', vencedor.nome);
     return vencedor;
 
@@ -279,7 +285,7 @@ async function aplicarEfeitoJogada(sala) {
       break;  
 
     case 'assassino':
-      jogador.moedas -= 3;
+      //o custo do assassino é subtraído no momento da jogada, então aqui só aplicamos o efeito de fazer o alvo perder uma carta(se necessario)
       await perderCarta(alvo);
       console.log('Jogada é direcionada, aplicando efeito e fazendo alvo perder carta');
       finalizarTurno(sala);
@@ -366,6 +372,7 @@ io.on('connection', (socket) => {
       console.log(`Socket ${socket.id} solicitou voltar ao lobby`);
       const jogador = jogadores.get(socket.id);
       const sala = salas.get(jogador.sala);
+      
       sala.jogadores.push(jogador); // Adiciona o jogador de volta à sala
       if (!sala) {
         console.error('Sala não encontrada para o jogador:', jogador.nome);
@@ -402,6 +409,13 @@ io.on('connection', (socket) => {
       sala.estado = 'AGUARDANDO_REACAO';
 
       sala.jogadaAtual = new Jogada(jogada, jogador.id, alvo);
+
+      // assassino é a única jogada que tem um custo imediato, então já subtraímos as moedas aqui.
+      // As outras jogadas só terão o efeito aplicado depois do tempo de reação acabar, então o custo (se tiver) será subtraído na função aplicarEfeitoJogada.
+      if (jogada === 'assassino') {
+        console.log('Jogada é assassino, subtraindo 3 moedas imediatamente');
+        jogador.moedas -= 3;
+      }
 
       io.to(sala.id).emit('mostrar-jogada', jogada, jogador, alvoJogador); // Emite um evento para mostrar a jogada realizada
 
@@ -499,7 +513,10 @@ io.on('connection', (socket) => {
       sala.estado = 'JOGADA_BLOQUEADA';
 
       sala.jogadaAtual.bloqueada = true;
-      sala.jogadaAtual.bloqueador = bloqueador.id;
+      sala.jogadaAtual.bloqueador = socket.id;
+
+      const nomeJogador =  sala.jogadaAtual.jogador === socket.id ? bloqueador.nome : jogadores.get(sala.jogadaAtual.jogador)?.nome || 'Desconhecido';
+      const nomeBloqueador = bloqueador.nome;
 
       clearTimeout(sala.timerReacao);
 
@@ -508,8 +525,9 @@ io.on('connection', (socket) => {
       io.to(sala.id).emit(
         'mostrar-jogada-bloqueada',
         sala.jogadaAtual.tipo,
-        sala.jogadaAtual.jogador.nome,
-        sala.jogadaAtual.bloqueador.nome
+        nomeJogador,
+        nomeBloqueador, 
+        bloqueador.id
       );
 
       //finalizarTurno(sala);
@@ -570,7 +588,22 @@ io.on('connection', (socket) => {
 
       if (sala) {
         console.log(`Removendo jogador da sala ${sala.id}`);
-        sala.jogadores = sala.jogadores.filter(j => j.id !== socket.id)
+
+        const jogadorIndex = sala.jogadores.findIndex(j => j.id === socket.id);
+        const jogadorEraTurnoAtual = jogadorIndex === sala.turnoAtual;
+
+        sala.jogadores = sala.jogadores.filter(j => j.id !== socket.id);
+
+        if (sala.turnoAtual != null && jogadorIndex > -1 && sala.jogadores.length > 0) {
+          if (jogadorEraTurnoAtual) {
+            sala.turnoAtual = sala.turnoAtual % sala.jogadores.length;
+            if (sala.estado === 'AGUARDANDO_JOGADA') {
+              enviarTurnoJogador(sala);
+            }
+          } else if (jogadorIndex < sala.turnoAtual) {
+            sala.turnoAtual -= 1;
+          }
+        }
 
         if (sala.jogadores.length === 0) {
             console.log(`Sala ${sala.id} deletada (sem jogadores)`);

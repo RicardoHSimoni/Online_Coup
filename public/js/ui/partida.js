@@ -12,10 +12,15 @@ export function atualizarPartidaPage(socket, jogadores) {
     const listaJogadores = jogadores.map((jogador) => jogador.nome);
     const container = document.getElementById('containerJogadoresPartida');
     container.innerHTML = ''; // Limpa a lista atual
-    listaJogadores.forEach((jogador) => {
+    jogadores.forEach((jogador) => {
         const div = document.createElement('div');
         div.classList.add('jogador');
-        div.textContent = jogador;
+        const nomeEl = document.createElement('div');
+        nomeEl.textContent = jogador.nome;
+        const moedasEl = document.createElement('div');
+        moedasEl.textContent = `Moedas: ${jogador.moedas}`;
+        div.appendChild(nomeEl);
+        div.appendChild(moedasEl);
         container.appendChild(div);
     });
 
@@ -135,11 +140,13 @@ export function selecionarCartasTrocar(socket, cartas, maxSelecionar = 2) {
     });
 }
 
-export function selecionarJogada(moedas) {
+export function selecionarJogada(socket, moedas, jogadores) {
     // ToDo: passar alguns parametros para habilitar apenas as opções de jogada válidas, como moedas, cartas, etc.
     const statusEl = document.getElementById("status");
     statusEl.textContent = "Sua vez! Selecione sua jogada.";
-    ativarSidebar(moedas); // Ativa a sidebar para permitir a seleção da jogada
+
+    const alguemPodeSerRoubado = jogadores.some(jogador => jogador.id !== socket.id && jogador.moedas >= 2);
+    ativarSidebar(moedas, alguemPodeSerRoubado); // Ativa a sidebar para permitir a seleção da jogada
     return new Promise((resolve) => {
         document.querySelectorAll(".sidebar-item").forEach(item => {
             item.addEventListener("click", () => {
@@ -249,26 +256,47 @@ function limparAcoesModal() {
     botaoContestar.onclick = null;
 }
 
-export function mostrarJogadaBloqueada(jogada, jogador, bloqueador) {
+export function mostrarJogadaBloqueada(jogada, nomeJogador, nomeBloqueador, oMesmo) {
     const modalText = document.getElementById("modal-text");
-    modalText.textContent = `${jogador} tentou ${jogada}, mas foi bloqueado por ${bloqueador}!`;
+    
+    let mensagem = "";
+    if (oMesmo) {
+        mensagem = `Você tentou ${jogada}, mas foi bloqueado por ${nomeBloqueador}!`;
+    } else {
+        mensagem = `${nomeJogador} tentou ${jogada}, mas foi bloqueado por ${nomeBloqueador}!`;
+    }
+    
+    modalText.textContent = mensagem;
 
     const botaoContestar = document.getElementById("contestar");
-    botaoContestar.classList.remove("hidden");  
-    botaoContestar.onclick = () => {
-        document.dispatchEvent(new CustomEvent('bloqueio-contestar', {
-            detail: jogador.sala
-        }));
-        alterarModal("modal", false);
-        limparAcoesModal();
-    };
+    
+    limparAcoesModal();
+    
+    if (!oMesmo) {
+        botaoContestar.classList.remove("hidden");  
+        botaoContestar.onclick = () => {
+            document.dispatchEvent(new CustomEvent('bloqueio-contestar', {
+                detail: jogador.sala
+            }));
+            alterarModal("modal", false);
+            limparAcoesModal();
+        };
+    }
 
     alterarModal("modal", true);
 }
 
-export function mostrarJogadaContestada(jogada, jogador, contestador) {
+export function mostrarJogadaContestada(jogada, jogador, contestador, oMesmo) {
     const modalText = document.getElementById("modal-text");
-    modalText.textContent = `${jogador.nome} tentou ${jogada}, mas foi contestado por ${contestador.nome}!`;
+    let mensagem;
+    
+    if (oMesmo) {
+        mensagem = `Você tentou ${jogada}, mas foi contestado por ${contestador.nome}!`;
+    } else {
+        mensagem = `${jogador.nome} tentou ${jogada}, mas foi contestado por ${contestador.nome}!`;
+    }
+    
+    modalText.textContent = mensagem;
     alterarModal("modal", true);
 }
 
@@ -291,10 +319,10 @@ function atualizarDadosJogador(jogador) {
   }
 
   // Ativa todos os itens da sidebar, mas habilita assassino apenas com moedas >= 3 e golpe apenas com moedas >= 7
-  function ativarSidebar(moedas) {
+  function ativarSidebar(moedas, alguemPodeSerRoubado) {
     document.querySelectorAll('.sidebar-item').forEach(item => {
       item.classList.remove('disabled');
-      if ((item.id === 'assassino' && moedas < 3) || (item.id === 'golpe' && moedas < 7)) {
+      if ((item.id === 'assassino' && moedas < 3) || (item.id === 'golpe' && moedas < 7) || (item.id === 'capitao' && !alguemPodeSerRoubado)) {
         item.classList.add('disabled');
       }
     });
