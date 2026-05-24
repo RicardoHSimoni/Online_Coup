@@ -6,7 +6,7 @@ export function inicializarLobbyPage(socket, sala, onIniciarPartida) {
   codigoSala.textContent = sala.id;
 
   const button = document.getElementById('iniciarPartida');
-  button.disabled = socket.id !== sala.vip.id; // Habilita apenas para o jogador VIP
+  button.disabled = socket.id !== sala.vip; // Habilita apenas para o jogador VIP
   button.onclick = () => {
     console.log('Botao iniciar partida clicado');
     onIniciarPartida(sala.id);

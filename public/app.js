@@ -115,8 +115,8 @@ socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
 });
   
 
-socket.on('atualizar-sala-Lobby', (sala) => {
-  atualizarListaJogadoresLobby(sala.jogadores); // Atualiza a lista de jogadores na tela do lobby
+socket.on('atualizar-sala-Lobby', (jogadores) => {
+  atualizarListaJogadoresLobby(jogadores); // Atualiza a lista de jogadores na tela do lobby
 });
 
 socket.on('atualizar-sala-Partida', (jogadores) => {

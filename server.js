@@ -328,6 +328,7 @@ io.on('connection', (socket) => {
         sala.vip = socket.id; // Define o jogador como VIP
         sala.numeroJogadores = 1; // Define o número de jogadores como 1
         //salasAtivas.push(sala); // Adiciona a sala à lista de salas ativas
+        sala.pagina = 'lobby'; // Define a página atual da sala como 'lobby'
         socket.emit('sala-criada', sala.id); // Envia a sala criada de volta para o cliente
     })
 
@@ -335,6 +336,7 @@ io.on('connection', (socket) => {
       const sala = salas.get(salaId); // Busca a sala pelo ID
 
       if (sala) {
+        console.log(sala);
         const jogador = new Jogador(socket.id, nome); // Cria um novo jogador com o ID do socket e o nome recebido
         jogadores.set(socket.id, jogador);
         jogador.sala = salaId; // Define a sala do jogador
@@ -342,7 +344,7 @@ io.on('connection', (socket) => {
         sala.numeroJogadores = sala.jogadores.length; // Atualiza o número de jogadores
         socket.join(sala.id); // Adiciona o socket à sala do Socket.IO
         console.log(`Socket ${socket.id} entrou na sala ${sala.id}. Sockets na sala:`, Array.from(io.sockets.adapter.rooms.get(sala.id) || []));
-        io.to(sala.id).emit('atualizar-sala-Lobby', sala); // Atualiza a lista de jogadores para todos os clientes
+        io.to(sala.id).emit('atualizar-sala-Lobby', sala.jogadores); // Atualiza a lista de jogadores para todos os clientes
         socket.emit('sala-criada', sala.id); // Envia a sala criada de volta para o cliente
         
       } else {
@@ -369,7 +371,7 @@ io.on('connection', (socket) => {
         console.error('Sala não encontrada para o jogador:', jogador.nome);
         return;
       }
-      io.to(sala.id).emit('atualizar-sala-Lobby', sala); // Atualiza a lista de jogadores para todos os clientes na sala
+      io.to(sala.id).emit('atualizar-sala-Lobby', sala.jogadores); // Atualiza a lista de jogadores para todos os clientes na sala
       socket.emit('sala-criada', sala.id); // Envia a sala criada de volta para o client  
 
     });
@@ -579,8 +581,7 @@ io.on('connection', (socket) => {
                 sala.vip = sala.jogadores[0].id; // Se o VIP saiu, o próximo jogador se torna VIP
             }
             if(sala.pagina === 'lobby') {
-              //TODO ajeitar essa emissao de sala, usar só os dados esseciais pipipi popopo
-              io.to(sala.id).emit("atualizar-sala-Lobby", sala);
+              io.to(sala.id).emit("atualizar-sala-Lobby", sala.jogadores);
             } else if(sala.pagina === 'partida') {
               io.to(sala.id).emit("atualizar-sala-Partida", sala.jogadores);
 
