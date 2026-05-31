@@ -193,7 +193,7 @@ export function mostrarJogada(jogada, jogador, alvo, oMesmo) {
         botaoBloquear.classList.remove("hidden");
         botaoBloquear.onclick = () => {
             document.dispatchEvent(new CustomEvent('jogada-bloquear', {
-                detail: jogador.sala
+                detail: jogador.sala,
             }));
             alterarModal("modal", false);
             limparAcoesModal();
@@ -204,7 +204,7 @@ export function mostrarJogada(jogada, jogador, alvo, oMesmo) {
         botaoContestar.classList.remove("hidden");
         botaoContestar.onclick = () => {
             document.dispatchEvent(new CustomEvent('jogada-contestar', {
-                detail: jogador.sala
+                detail: jogador.sala,
             }));
             alterarModal("modal", false);
             limparAcoesModal();
@@ -276,7 +276,7 @@ export function mostrarJogadaBloqueada(jogada, nomeJogador, nomeBloqueador, oMes
         botaoContestar.classList.remove("hidden");  
         botaoContestar.onclick = () => {
             document.dispatchEvent(new CustomEvent('bloqueio-contestar', {
-                detail: jogador.sala
+                detail: null
             }));
             alterarModal("modal", false);
             limparAcoesModal();
@@ -289,15 +289,27 @@ export function mostrarJogadaBloqueada(jogada, nomeJogador, nomeBloqueador, oMes
 export function mostrarJogadaContestada(jogada, jogador, contestador, oMesmo) {
     const modalText = document.getElementById("modal-text");
     let mensagem;
+    const jogadorNome = typeof jogador === 'string' ? jogador : jogador.nome;
+    const contestadorNome = typeof contestador === 'string' ? contestador : contestador.nome;
     
     if (oMesmo) {
-        mensagem = `Você tentou ${jogada}, mas foi contestado por ${contestador.nome}!`;
+        mensagem = `Você tentou ${jogada}, mas foi contestado por ${contestadorNome}!`;
     } else {
-        mensagem = `${jogador.nome} tentou ${jogada}, mas foi contestado por ${contestador.nome}!`;
+        mensagem = `${jogadorNome} tentou ${jogada}, mas foi contestado por ${contestadorNome}!`;
     }
     
     modalText.textContent = mensagem;
     alterarModal("modal", true);
+}
+
+export function adicionarLinhaLog(mensagem) {
+    const logEntries = document.getElementById('logEntries');
+    if (!logEntries) return;
+    const linha = document.createElement('div');
+    linha.className = 'log-entry';
+    linha.textContent = mensagem;
+    logEntries.appendChild(linha);
+    logEntries.scrollTop = logEntries.scrollHeight;
 }
 
 function alterarModal(modalId, abrir) {

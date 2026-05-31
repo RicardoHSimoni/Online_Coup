@@ -1,6 +1,6 @@
 import { atualizarListaJogadoresLobby, inicializarLobbyPage } from "./js/ui/lobby.js";
 import { inicializarMainPage } from "./js/ui/mainPage.js";
-import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo, selecionarCartaPerder, selecionarCartasTrocar, mostrarTelaVitoria } from "./js/ui/partida.js";
+import { atualizarPartidaPage, selecionarJogada, jogadaSelecionada, mostrarJogada, mostrarJogadaBloqueada, mostrarJogadaContestada, selecionarJogadorAlvo, selecionarCartaPerder, selecionarCartasTrocar, mostrarTelaVitoria, adicionarLinhaLog } from "./js/ui/partida.js";
 
 const jogadasDirecionadas = ['capitao', 'assassino', 'golpe']; // Exemplo de jogadas que precisam de alvo
 
@@ -78,14 +78,45 @@ socket.on('trocarCartas', async (dados) => {
 });
 
 socket.on('jogador-venceu', (nomeJogador) => {
-  console.log(`Jogador ${nomeJogador} venceu a partida!`);
-  // Implementar lógica para mostrar a tela de vitória, quem venceu, etc.
+  adicionarLinhaLog(`Jogador ${nomeJogador} venceu a partida!`);
   mostrarTelaVitoria(nomeJogador);
 });
 
 socket.on('mostrar-jogada', (jogada, jogador, alvo) => {
   const oMesmo = jogador.id === socket.id;
   mostrarJogada(jogada, jogador, alvo, oMesmo);
+
+  let mensagem = `Jogador ${jogador.nome} fez ${jogada}`;
+  if (alvo) {
+    mensagem += ` em ${alvo.nome}`;
+  }
+  adicionarLinhaLog(mensagem + '.');
+});
+
+socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador, bloqueadorId) => {
+  const oMesmo = bloqueadorId === socket.id;
+  mostrarJogadaBloqueada(jogada, jogador, bloqueador, oMesmo);
+  adicionarLinhaLog(`Jogador ${jogador} tentou ${jogada} mas foi bloqueado por ${bloqueador}.`);
+});
+
+socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
+  const jogadorNome = typeof jogador === 'string' ? jogador : jogador.nome;
+  const contestadorNome = typeof contestador === 'string' ? contestador : contestador.nome;
+  const oMesmo = typeof jogador !== 'string' && jogador.id === socket.id;
+  mostrarJogadaContestada(jogada, jogador, contestador, oMesmo);
+  adicionarLinhaLog(`Jogador ${jogadorNome} tentou ${jogada} mas foi contestado por ${contestadorNome}.`);
+});
+
+socket.on('jogador-perdeu-carta', (nomeJogador, carta) => {
+  adicionarLinhaLog(`Jogador ${nomeJogador} perdeu a carta ${carta}.`);
+});
+
+socket.on('jogador-perdeu-contestacao', (nomeJogador, carta) => {
+  adicionarLinhaLog(`Jogador ${nomeJogador} perdeu a contestação e perdeu a carta ${carta}.`);
+});
+
+socket.on('jogador-eliminado', (nomeJogador) => {
+  adicionarLinhaLog(`Jogador ${nomeJogador} foi eliminado da partida.`);
 });
 
 document.addEventListener('jogada-bloquear', (event) => {
@@ -107,17 +138,6 @@ document.addEventListener('voltar-lobby', (event) => {
   socket.emit('voltar-lobby');
 });
 
-socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador, bloqueadorId) => {
-  // Implementar lógica para mostrar que a jogada foi bloqueada, quem bloqueou, etc.
-  const oMesmo = bloqueadorId === socket.id;
-  mostrarJogadaBloqueada(jogada, jogador, bloqueador, oMesmo);
-});
-
-socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
-  // Implementar lógica para mostrar que a jogada foi contestada, quem contestou, etc.
-  const oMesmo = jogador.id === socket.id;
-  mostrarJogadaContestada(jogada, jogador, contestador, oMesmo);
-});
   
 
 socket.on('atualizar-sala-Lobby', (jogadores) => {
