@@ -67,9 +67,9 @@ function iniciarJanelaReacaoEscolherCarta(sala, jogador) {
     const resolve = jogador.perdaCartaResolver;
     jogador.perdaCartaResolver = null;
     jogador.perdaCartaPromise = null;
-    perderCartaAutomatico(jogador);
+    const cartaPerdida = perderCartaAutomatico(jogador);
     if (resolve) {
-      resolve();
+      resolve(cartaPerdida);
     }
   }, 10000); // 10 segundos para escolher a carta a perder
 }
@@ -129,14 +129,20 @@ async function trocarCartas(jogador) {
 
 
 function perderCartaAutomatico(jogador) {
-  jogador.cartas.pop();
+  const cartaPerdida = jogador.cartas.pop();
+  const sala = salas.get(jogador.sala);
+  if (cartaPerdida && sala) {
+    io.to(sala.id).emit('jogador-perdeu-carta', jogador.nome, cartaPerdida);
+  }
+
   if (jogador.cartas.length === 0) {
     jogador.estaVivo = false;
-    const sala = salas.get(jogador.sala);
     if (sala) {
+      io.to(sala.id).emit('jogador-eliminado', jogador.nome);
       verificarVencedor(sala);
     }
   }
+  return cartaPerdida;
 }
 
 function zerarSala(sala) {
@@ -222,10 +228,12 @@ async function resolverBLoqueioContestado(sala) {
   }
 
   if (temCarta) {
-    await perderCarta(contestador);
+    const cartaPerdida = await perderCarta(contestador);
+    io.to(sala.id).emit('jogador-perdeu-contestacao', contestador.nome, cartaPerdida);
     finalizarTurno(sala);
   } else {
-    await perderCarta(bloqueador);
+    const cartaPerdida = await perderCarta(bloqueador);
+    io.to(sala.id).emit('jogador-perdeu-contestacao', bloqueador.nome, cartaPerdida);
     await aplicarEfeitoJogada(sala); // Aplica o efeito da jogada normalmente, já que o bloqueador não tinha a carta necessária
   }
 }
@@ -244,11 +252,13 @@ async function resolverContestacao(sala) {
 
   if (temCarta) {
     // contestador perde carta
-    await perderCarta(contestador);
+    const cartaPerdida = await perderCarta(contestador);
+    io.to(sala.id).emit('jogador-perdeu-contestacao', contestador.nome, cartaPerdida);
     await aplicarEfeitoJogada(sala); // Aplica o efeito da jogada normalmente, já que o jogador tinha a carta necessária
   } else {
     // jogador mentiu
-    await perderCarta(jogador);
+    const cartaPerdida = await perderCarta(jogador);
+    io.to(sala.id).emit('jogador-perdeu-contestacao', jogador.nome, cartaPerdida);
     finalizarTurno(sala);
   }
 }
@@ -444,10 +454,13 @@ io.on('connection', (socket) => {
 
       clearTimeout(sala.timerReacao); // Limpa o timer de reação para escolher carta
 
+      let cartaPerdida = null;
       const index = jogador.cartas.indexOf(carta);
       if (index > -1) {
         jogador.cartas.splice(index, 1);
-        console.log(`${jogador.nome} perdeu a carta: ${carta}`);
+        cartaPerdida = carta;
+        console.log(`${jogador.nome} perdeu a carta: ${cartaPerdida}`);
+        io.to(sala.id).emit('jogador-perdeu-carta', jogador.nome, cartaPerdida);
       } else {
         console.warn(`Carta ${carta} não encontrada para o jogador ${jogador.nome}`);
       }
@@ -455,11 +468,12 @@ io.on('connection', (socket) => {
       if (jogador.cartas.length === 0) {
         jogador.estaVivo = false;
         console.log(`${jogador.nome} foi eliminado!`);
+        io.to(sala.id).emit('jogador-eliminado', jogador.nome);
         if (verificarVencedor(sala)) {
           const resolver = jogador.perdaCartaResolver;
           jogador.perdaCartaResolver = null;
           jogador.perdaCartaPromise = null;
-          if (resolver) resolver();
+          if (resolver) resolver(cartaPerdida);
           return;
         }
       }
@@ -469,7 +483,7 @@ io.on('connection', (socket) => {
       jogador.perdaCartaPromise = null;
 
       if (resolver) {
-        resolver();
+        resolver(cartaPerdida);
       }
     });
 

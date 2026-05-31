@@ -237,8 +237,41 @@ header {
   background: #666;
 
   border-radius: 20px;
+}
 
+.log-container {
+  width: 100%;
+  max-height: 220px;
+  margin: 16px auto;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.log-container h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+}
+
+.log-entries {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-entry {
+  padding: 10px;
+  border-radius: 8px;
+  background: #f7f7f7;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+  color: #333;
+}
+
+  /*display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
