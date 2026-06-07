@@ -7,18 +7,35 @@ const jogadasBloqueaveis = ['ajuda', 'capitao', 'assassino'];
 
 const jogadasContestaveis = ['duque', 'capitao', 'assassino', 'condessa', 'embaixador'];
 
-export function atualizarPartidaPage(socket, jogadores) {
+export function atualizarPartidaPage(socket, jogadores, turnoAtual = null) {
 
-    const listaJogadores = jogadores.map((jogador) => jogador.nome);
     const container = document.getElementById('containerJogadoresPartida');
     container.innerHTML = ''; // Limpa a lista atual
-    jogadores.forEach((jogador) => {
+    jogadores.forEach((jogador, index) => {
         const div = document.createElement('div');
         div.classList.add('jogador');
+        if (index === turnoAtual) {
+            div.classList.add('current-turn');
+        }
+
         const nomeEl = document.createElement('div');
-        nomeEl.textContent = jogador.nome;
+        nomeEl.classList.add('player-name');
+
+        const nomeTexto = document.createElement('span');
+        nomeTexto.textContent = jogador.nome;
+
+        const cartasSymbol = '♠'.repeat(jogador.cartas.length);
+        const iconEl = document.createElement('span');
+        iconEl.classList.add('player-icon');
+        iconEl.textContent = cartasSymbol;
+
+        nomeEl.appendChild(nomeTexto);
+        nomeEl.appendChild(iconEl);
+
         const moedasEl = document.createElement('div');
         moedasEl.textContent = `Moedas: ${jogador.moedas}`;
+        moedasEl.classList.add('player-coins');
+
         div.appendChild(nomeEl);
         div.appendChild(moedasEl);
         container.appendChild(div);
@@ -33,8 +50,29 @@ export function atualizarPartidaPage(socket, jogadores) {
     const card2 = document.getElementById('card2');
     
     
-    card1.textContent = jogador.cartas[0] || '';
-    card2.textContent = jogador.cartas[1] || '';
+    // Helper to convert card name to asset filename
+    function assetFileName(carta) {
+        if (!carta) return null;
+        return String(carta).toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_\-]/g, '');
+    }
+
+    function setCardImage(element, carta) {
+        const nomeArquivo = assetFileName(carta);
+        if (nomeArquivo) {
+            element.style.backgroundImage = `url("assets/${nomeArquivo}.png")`;
+            element.classList.add('card-has-image');
+            element.textContent = '';
+        } else {
+            // mostrar verso quando não houver carta (influência perdida)
+            element.style.backgroundImage = `url("assets/verso.png")`;
+            element.classList.remove('card-has-image');
+            element.textContent = '';
+        }
+    }
+
+    // Para as cartas do jogador local, exibimos imagens (ou verso quando faltar)
+    setCardImage(card1, jogador.cartas[0]);
+    setCardImage(card2, jogador.cartas[1]);
 
     const statusEl = document.getElementById("status");
     let souMeuTurno = false;
@@ -167,6 +205,7 @@ export function mostrarJogada(jogada, jogador, alvo, oMesmo) {
     const modalText = document.getElementById("modal-text");
     const botaoBloquear = document.getElementById("bloquear");
     const botaoContestar = document.getElementById("contestar");
+    const botaoOk = document.getElementById("ok-modal");
 
     limparAcoesModal();
 
@@ -211,11 +250,16 @@ export function mostrarJogada(jogada, jogador, alvo, oMesmo) {
         };
     }
 
-    alterarModal("modal", true);
-    setTimeout(() => {
+    botaoOk.classList.remove("hidden");
+    botaoOk.onclick = () => {
         alterarModal("modal", false);
         limparAcoesModal();
-    }, MODAL_TIMEOUT_MS);
+        document.dispatchEvent(new CustomEvent('jogador-ok', {
+            detail: jogador.sala,
+        }));
+    };
+
+    alterarModal("modal", true);
 }
 
 export function mostrarTelaVitoria(nomeJogador) {
@@ -224,6 +268,7 @@ export function mostrarTelaVitoria(nomeJogador) {
     alterarModal("modal-alvo", false);
     alterarModal("modal-escolher-carta", false);
     limparAcoesModal();
+    limparLog(); // Limpa o log ao terminar a partida
 
     const modal = document.getElementById("modalFinalPartida");
     const modalText = document.getElementById("modalFinalPartida-text");
@@ -250,13 +295,16 @@ export function mostrarTelaVitoria(nomeJogador) {
 function limparAcoesModal() {
     const botaoBloquear = document.getElementById("bloquear");
     const botaoContestar = document.getElementById("contestar");
+    const botaoOk = document.getElementById("ok-modal");
     botaoBloquear.classList.add("hidden");
     botaoContestar.classList.add("hidden");
+    botaoOk.classList.add("hidden");
     botaoBloquear.onclick = null;
     botaoContestar.onclick = null;
+    botaoOk.onclick = null;
 }
 
-export function mostrarJogadaBloqueada(jogada, nomeJogador, nomeBloqueador, oMesmo) {
+export function mostrarJogadaBloqueada(jogada, nomeJogador, nomeBloqueador, oMesmo, salaId) {
     const modalText = document.getElementById("modal-text");
     
     let mensagem = "";
@@ -269,6 +317,7 @@ export function mostrarJogadaBloqueada(jogada, nomeJogador, nomeBloqueador, oMes
     modalText.textContent = mensagem;
 
     const botaoContestar = document.getElementById("contestar");
+    const botaoOk = document.getElementById("ok-modal");
     
     limparAcoesModal();
     
@@ -276,18 +325,28 @@ export function mostrarJogadaBloqueada(jogada, nomeJogador, nomeBloqueador, oMes
         botaoContestar.classList.remove("hidden");  
         botaoContestar.onclick = () => {
             document.dispatchEvent(new CustomEvent('bloqueio-contestar', {
-                detail: null
+                detail: salaId,
             }));
             alterarModal("modal", false);
             limparAcoesModal();
         };
     }
 
+    botaoOk.classList.remove("hidden");
+    botaoOk.onclick = () => {
+        alterarModal("modal", false);
+        limparAcoesModal();
+        document.dispatchEvent(new CustomEvent('jogador-ok', {
+            detail: salaId,
+        }));
+    };
+
     alterarModal("modal", true);
 }
 
-export function mostrarJogadaContestada(jogada, jogador, contestador, oMesmo) {
+export function mostrarJogadaContestada(jogada, jogador, contestador, oMesmo, salaId) {
     const modalText = document.getElementById("modal-text");
+    const botaoOk = document.getElementById("ok-modal");
     let mensagem;
     const jogadorNome = typeof jogador === 'string' ? jogador : jogador.nome;
     const contestadorNome = typeof contestador === 'string' ? contestador : contestador.nome;
@@ -299,6 +358,16 @@ export function mostrarJogadaContestada(jogada, jogador, contestador, oMesmo) {
     }
     
     modalText.textContent = mensagem;
+    
+    botaoOk.classList.remove("hidden");
+    botaoOk.onclick = () => {
+        alterarModal("modal", false);
+        limparAcoesModal();
+        document.dispatchEvent(new CustomEvent('jogador-ok', {
+            detail: salaId,
+        }));
+    };
+    
     alterarModal("modal", true);
 }
 
@@ -332,16 +401,27 @@ function atualizarDadosJogador(jogador) {
 
   // Ativa todos os itens da sidebar, mas habilita assassino apenas com moedas >= 3 e golpe apenas com moedas >= 7
   function ativarSidebar(moedas, alguemPodeSerRoubado) {
-    document.querySelectorAll('.sidebar-item').forEach(item => {
-      item.classList.remove('disabled');
-      if ((item.id === 'assassino' && moedas < 3) || (item.id === 'golpe' && moedas < 7) || (item.id === 'capitao' && !alguemPodeSerRoubado)) {
-        item.classList.add('disabled');
-      }
-    });
+    if(moedas >= 10)
+        document.getElementById('golpe').classList.remove('disabled');
+    else{
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.classList.remove('disabled');
+            if ((item.id === 'assassino' && moedas < 3) || (item.id === 'golpe' && moedas < 7) || (item.id === 'capitao' && !alguemPodeSerRoubado)) {
+                item.classList.add('disabled');
+            }
+        });
+    }
   }
 
   function atualizarSidebar(ativo) {
       document.querySelectorAll(".sidebar-item").forEach(item => {
           item.classList.toggle("disabled", !ativo);
       });
+  }
+
+  function limparLog() {
+    const logEntries = document.getElementById('logEntries');
+    if (logEntries) {
+      logEntries.innerHTML = '';
+    }
   }

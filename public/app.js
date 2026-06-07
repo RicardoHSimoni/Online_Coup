@@ -6,6 +6,8 @@ const jogadasDirecionadas = ['capitao', 'assassino', 'golpe']; // Exemplo de jog
 
 const socket = io(); // Conexão global única
 
+let salaIdAtual = null; // Armazena a salaId da partida atual
+
 // Controle de telas SPA
 function mostrar(tela) {
   document.querySelectorAll('.tela').forEach(div => div.style.display = 'none');
@@ -42,8 +44,9 @@ socket.on('atualizarListaJogadores', (lista) => {
 });
 
 socket.on('partidaConfigurada', (sala) => {
+  salaIdAtual = sala.id; // Armazena a salaId
   mostrar('partidaPage'); // Muda para a tela de partida
-  atualizarPartidaPage(socket, sala.jogadores); // Inicializa a tela de partida
+  atualizarPartidaPage(socket, sala.jogadores, sala.turnoAtual); // Inicializa a tela de partida com o jogador no turno
   // O turno é iniciado automaticamente pelo servidor
 });
      
@@ -95,7 +98,7 @@ socket.on('mostrar-jogada', (jogada, jogador, alvo) => {
 
 socket.on('mostrar-jogada-bloqueada', (jogada, jogador, bloqueador, bloqueadorId) => {
   const oMesmo = bloqueadorId === socket.id;
-  mostrarJogadaBloqueada(jogada, jogador, bloqueador, oMesmo);
+  mostrarJogadaBloqueada(jogada, jogador, bloqueador, oMesmo, salaIdAtual);
   adicionarLinhaLog(`Jogador ${jogador} tentou ${jogada} mas foi bloqueado por ${bloqueador}.`);
 });
 
@@ -103,7 +106,7 @@ socket.on('mostrar-jogada-contestada', (jogada, jogador, contestador) => {
   const jogadorNome = typeof jogador === 'string' ? jogador : jogador.nome;
   const contestadorNome = typeof contestador === 'string' ? contestador : contestador.nome;
   const oMesmo = typeof jogador !== 'string' && jogador.id === socket.id;
-  mostrarJogadaContestada(jogada, jogador, contestador, oMesmo);
+  mostrarJogadaContestada(jogada, jogador, contestador, oMesmo, salaIdAtual);
   adicionarLinhaLog(`Jogador ${jogadorNome} tentou ${jogada} mas foi contestado por ${contestadorNome}.`);
 });
 
@@ -134,6 +137,11 @@ document.addEventListener('bloqueio-contestar', (event) => {
   socket.emit('bloqueio-contestado', salaId);
 });
 
+document.addEventListener('jogador-ok', (event) => {
+  const salaId = event.detail;
+  socket.emit('jogador-ok', salaId);
+});
+
 document.addEventListener('voltar-lobby', (event) => {
   socket.emit('voltar-lobby');
 });
@@ -144,7 +152,7 @@ socket.on('atualizar-sala-Lobby', (jogadores) => {
   atualizarListaJogadoresLobby(jogadores); // Atualiza a lista de jogadores na tela do lobby
 });
 
-socket.on('atualizar-sala-Partida', (jogadores) => {
-  // Implementar lógica para atualizar a interface da partida com os dados da sala atualizada
-  atualizarPartidaPage(socket, jogadores); 
+socket.on('atualizar-sala-Partida', (dados) => {
+  // Atualiza a interface da partida com os dados da sala e o jogador no turno
+  atualizarPartidaPage(socket, dados.jogadores, dados.turnoAtual);
 });

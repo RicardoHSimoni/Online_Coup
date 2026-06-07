@@ -36,6 +36,14 @@ export function inicializarMainPage(socket) {
 
     };
 
+    socket.on('sala-cheia', ({ mensagem }) => {
+        alert(mensagem || 'A sala está cheia.');
+    });
+
+    socket.on('erro-entrada', ({ mensagem }) => {
+        alert(mensagem || 'Não foi possível entrar na sala.');
+    });
+
     // Criação de sala
     document.getElementById('criarSala').onclick = () => {
         const nome = nomeInputCriar.value; // Define o nome do jogador

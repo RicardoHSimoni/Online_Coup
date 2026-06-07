@@ -17,6 +17,8 @@ const io = new Server(server);
 
 const jogadores = new Map(); // socket.id -> jogador
 const salas = new Map();     // salaId -> sala
+const oksRecebidos = new Map(); // salaId -> Set de socket.ids que clicaram Ok
+const MAX_JOGADORES = 10; // Limite de jogadores por sala
 
 // Servir o arquivo mainPage.html na pasta public
 app.get('/', (req, res) => {
@@ -40,10 +42,12 @@ function enviarTurnoJogador(sala) {
     const jogador = sala.jogadores[turno];
     console.log('Enviando turno apenas para:', jogador.id);
 
-    io.to(sala.id).emit('atualizar-sala-Partida', sala.jogadores); // Atualiza a sala para todos os jogadores (para atualizar a interface, mostrar quem é o jogador atual, etc.)
+    io.to(sala.id).emit('atualizar-sala-Partida', {
+      jogadores: sala.jogadores,
+      turnoAtual: sala.turnoAtual,
+    });
 
     io.to(jogador.id).emit('seu-turno', jogador.moedas, sala.jogadores); // Envia o turno apenas para o jogador atual, junto com a quantidade de moedas que ele tem
-    
   }
 }
 
@@ -57,12 +61,14 @@ function proximoTurno(sala) {
 }
 
 function iniciarJanelaReacao(sala) {
+  clearTimeout(sala.timerReacao);
   sala.timerReacao = setTimeout(() => {
     void resolverJogada(sala);
-  }, 5000); // 5 segundos para bloquear/contestar
+  }, 30000); // 30 segundos para bloquear/contestar
 }
 
 function iniciarJanelaReacaoEscolherCarta(sala, jogador) {
+  clearTimeout(sala.timerReacao);
   sala.timerReacao = setTimeout(() => {
     const resolve = jogador.perdaCartaResolver;
     jogador.perdaCartaResolver = null;
@@ -75,6 +81,7 @@ function iniciarJanelaReacaoEscolherCarta(sala, jogador) {
 }
 
 function iniciarJanelaTrocarCartas(sala, jogador) {
+  clearTimeout(sala.timerReacao);
   sala.timerReacao = setTimeout(() => {
     const resolve = jogador.trocarCartasResolver;
     jogador.trocarCartasResolver = null;
@@ -351,21 +358,28 @@ io.on('connection', (socket) => {
     socket.on('entrar-sala', ({ salaId, nome }) => {
       const sala = salas.get(salaId); // Busca a sala pelo ID
 
-      if (sala) {
-        console.log(sala);
-        const jogador = new Jogador(socket.id, nome); // Cria um novo jogador com o ID do socket e o nome recebido
-        jogadores.set(socket.id, jogador);
-        jogador.sala = salaId; // Define a sala do jogador
-        sala.jogadores.push(jogador); // Adiciona o jogador à sala
-        sala.numeroJogadores = sala.jogadores.length; // Atualiza o número de jogadores
-        socket.join(sala.id); // Adiciona o socket à sala do Socket.IO
-        console.log(`Socket ${socket.id} entrou na sala ${sala.id}. Sockets na sala:`, Array.from(io.sockets.adapter.rooms.get(sala.id) || []));
-        io.to(sala.id).emit('atualizar-sala-Lobby', sala.jogadores); // Atualiza a lista de jogadores para todos os clientes
-        socket.emit('sala-criada', sala.id); // Envia a sala criada de volta para o cliente
-        
-      } else {
+      if (!sala) {
         console.error('Sala não encontrada:', salaId);
-      } 
+        socket.emit('erro-entrada', { mensagem: 'Sala não encontrada.' });
+        return;
+      }
+
+      if (sala.jogadores.length >= MAX_JOGADORES) {
+        console.log(`Sala ${salaId} está cheia. ${sala.jogadores.length}/${MAX_JOGADORES} jogadores.`);
+        socket.emit('sala-cheia', { mensagem: `A sala já atingiu o limite de ${MAX_JOGADORES} jogadores.` });
+        return;
+      }
+
+      console.log(sala);
+      const jogador = new Jogador(socket.id, nome); // Cria um novo jogador com o ID do socket e o nome recebido
+      jogadores.set(socket.id, jogador);
+      jogador.sala = salaId; // Define a sala do jogador
+      sala.jogadores.push(jogador); // Adiciona o jogador à sala
+      sala.numeroJogadores = sala.jogadores.length; // Atualiza o número de jogadores
+      socket.join(sala.id); // Adiciona o socket à sala do Socket.IO
+      console.log(`Socket ${socket.id} entrou na sala ${sala.id}. Sockets na sala:`, Array.from(io.sockets.adapter.rooms.get(sala.id) || []));
+      io.to(sala.id).emit('atualizar-sala-Lobby', sala.jogadores); // Atualiza a lista de jogadores para todos os clientes
+      socket.emit('sala-criada', sala.id); // Envia a sala criada de volta para o cliente
     })
 
     socket.on("obter-sala-Lobby", (salaId) => {
@@ -415,6 +429,9 @@ io.on('connection', (socket) => {
 
       if (!sala) return;
       if (sala.estado !== 'AGUARDANDO_JOGADA') return;
+
+      // Limpa o rastreamento de Oks quando uma nova jogada começa
+      oksRecebidos.delete(sala.id);
 
       sala.estado = 'AGUARDANDO_REACAO';
 
@@ -524,6 +541,7 @@ io.on('connection', (socket) => {
 
       if (sala.estado !== 'AGUARDANDO_REACAO') return;
 
+      oksRecebidos.delete(salaId);
       sala.estado = 'JOGADA_BLOQUEADA';
 
       sala.jogadaAtual.bloqueada = true;
@@ -553,6 +571,7 @@ io.on('connection', (socket) => {
 
       if (!sala || sala.estado !== 'AGUARDANDO_REACAO') return;
 
+      oksRecebidos.delete(salaId);
       sala.estado = 'JOGADA_CONTESTADA';
       sala.jogadaAtual.contestada = true;
       sala.jogadaAtual.contestador = contestador.id;
@@ -571,6 +590,7 @@ io.on('connection', (socket) => {
         return;
       }
 
+      oksRecebidos.delete(salaId);
       sala.estado = 'BLOQUEIO_CONTESTADO';
 
       if (!sala.jogadaAtual || !sala.jogadaAtual.bloqueada) {
@@ -592,6 +612,34 @@ io.on('connection', (socket) => {
       proximoTurno(sala);
     });
 
+    socket.on('jogador-ok', async (salaId) => {
+      const sala = salas.get(salaId);
+      
+      if (!sala) {
+        console.error('Sala não encontrada para jogador-ok:', salaId);
+        return;
+      }
+
+      if (!['AGUARDANDO_REACAO', 'JOGADA_BLOQUEADA', 'JOGADA_CONTESTADA', 'BLOQUEIO_CONTESTADO'].includes(sala.estado)) {
+        return;
+      }
+
+      if (!oksRecebidos.has(salaId)) {
+        oksRecebidos.set(salaId, new Set());
+      }
+
+      const oks = oksRecebidos.get(salaId);
+      oks.add(socket.id);
+
+      console.log(`Jogador ${socket.id} clicou Ok. Oks recebidos: ${oks.size}/${sala.jogadores.length}`);
+
+      if (oks.size === sala.jogadores.length) {
+        console.log(`Todos os jogadores clicaram Ok na sala ${salaId}. Resolvendo a jogada.`);
+        oksRecebidos.delete(salaId); // Limpa o rastreamento de Oks
+        clearTimeout(sala.timerReacao);
+        await resolverJogada(sala);
+      }
+    });
 
     socket.on("disconnect", () => {
       const jogador = jogadores.get(socket.id);
@@ -602,6 +650,11 @@ io.on('connection', (socket) => {
 
       if (sala) {
         console.log(`Removendo jogador da sala ${sala.id}`);
+
+        // Remove do rastreamento de Oks se desconectar
+        if (oksRecebidos.has(sala.id)) {
+          oksRecebidos.get(sala.id).delete(socket.id);
+        }
 
         const jogadorIndex = sala.jogadores.findIndex(j => j.id === socket.id);
         const jogadorEraTurnoAtual = jogadorIndex === sala.turnoAtual;
@@ -622,6 +675,7 @@ io.on('connection', (socket) => {
         if (sala.jogadores.length === 0) {
             console.log(`Sala ${sala.id} deletada (sem jogadores)`);
             salas.delete(sala.id);
+            oksRecebidos.delete(sala.id); // Limpa o rastreamento de Oks
         } else {
             console.log(`Atualizando sala ${sala.id}: ${sala.jogadores.length} jogadores restantes`);
             if(sala.vip === socket.id) {
