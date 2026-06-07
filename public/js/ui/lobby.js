@@ -1,13 +1,26 @@
+let lobbyStartButton = null;
+let lobbySocketId = null;
+let lobbyVipId = null;
+
+function atualizarBotaoIniciar(jogadores) {
+  if (!lobbyStartButton) return;
+  const quantidade = jogadores?.length || 0;
+  lobbyStartButton.disabled = lobbySocketId !== lobbyVipId || quantidade < 2;
+}
+
 // Função para inicializar a página do lobby
 export function inicializarLobbyPage(socket, sala, onIniciarPartida) {
+  lobbySocketId = socket.id;
+  lobbyVipId = sala.vip;
+  lobbyStartButton = document.getElementById('iniciarPartida');
+
   atualizarListaJogadoresLobby(sala.jogadores); // Atualiza a lista de jogadores ao entrar no lobby
+  atualizarBotaoIniciar(sala.jogadores);
 
   const codigoSala = document.getElementById('codigoSala');
   codigoSala.textContent = sala.id;
 
-  const button = document.getElementById('iniciarPartida');
-  button.disabled = socket.id !== sala.vip; // Habilita apenas para o jogador VIP
-  button.onclick = () => {
+  lobbyStartButton.onclick = () => {
     console.log('Botao iniciar partida clicado');
     onIniciarPartida(sala.id);
   };
@@ -28,4 +41,6 @@ export function atualizarListaJogadoresLobby(jogadores) {
     div.textContent = jogador;
     container.appendChild(div);
   });
+
+  atualizarBotaoIniciar(jogadores);
 }

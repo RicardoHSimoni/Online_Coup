@@ -5,7 +5,6 @@ export default class Sala {
         this.jogadores = []; // Array para armazenar os jogadores
         this.baralho = null; // Baralho da sala
         this.rodada = 0; // Rodada atual
-        this.vencedores = []; // Array para armazenar os vencedores
         this.vip = null; // Jogador VIP
         this.turnoAtual = 0; // Índice do jogador que está na vez
         this.pagina = 'lobby'; // Página atual da sala (lobby ou partida)
