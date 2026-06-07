@@ -1,5 +1,4 @@
 # Online_Coup
-# Online Coup
 
 Implementação online do jogo de blefe e estratégia **Coup**, desenvolvida com **Node.js**, **Express** e **Socket.IO**, permitindo partidas multiplayer em tempo real diretamente pelo navegador.
 
